@@ -1,6 +1,8 @@
+import { drawMap } from './map-art.js';
+
 const draftKey = 'caravan-ar-layout-draft-v1';
 
-export function mountEditor(items, published, applyLayout) {
+export function mountEditor(items, published, applyLayout, panelImage) {
   document.body.classList.add('editing');
 
   const panel = document.createElement('aside');
@@ -8,7 +10,7 @@ export function mountEditor(items, published, applyLayout) {
   panel.innerHTML = `
     <h1>AR 场景编辑器</h1>
     <p>拖动地图上的道具，实时查看 3D 效果。</p>
-    <div id="layout-map" aria-label="道具摆放地图"></div>
+    <div id="layout-map" aria-label="道具摆放地图"><canvas width="540" height="540" aria-hidden="true"></canvas></div>
     <label>道具 <select id="layout-item"></select></label>
     <div class="layout-fields">
       <label>横向位置 <input id="layout-col" type="number" min="1" max="6" step="0.5"></label>
@@ -29,6 +31,7 @@ export function mountEditor(items, published, applyLayout) {
 
   const element = id => panel.querySelector('#layout-' + id);
   const map = element('map'), select = element('item'), status = element('status');
+  const mapContext = map.querySelector('canvas').getContext('2d');
   const pins = new Map();
   let layout = published;
   let selected = items[0];
@@ -53,6 +56,7 @@ export function mountEditor(items, published, applyLayout) {
   }
 
   function render() {
+    drawMap(mapContext, panelImage, items, layout);
     const value = layout[selected.id];
     select.value = selected.id;
     for (const key of ['col', 'row', 'scale', 'rotation']) {

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { drawMap } from './map-art.js';
 
 /* ================= 配置：以后做「每个孩子专属」只改这里 ================= */
 const CONFIG = {
@@ -16,6 +17,7 @@ const COL = { ink: 0x253064, coral: 0xF2685A, teal: 0x21A39A, gold: 0xF6B53C, sk
 const CELL = 1 / 6;
 const STEP = 0.85;                 // 每块积木执行秒数
 const T_RUN = 3.0;                 // 开始执行时间
+const READY_TIME = T_RUN - 1;
 const T_END = T_RUN + CONFIG.program.length * STEP;
 const COINS_PER_STEP = 6;
 const FONT = '"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif';
@@ -35,13 +37,15 @@ for (const cmd of CONFIG.program) {
   poses.push({ c: p.c + Math.round(-Math.sin(h)), r: p.r + Math.round(-Math.cos(h)), h });
 }
 function carPose(t) {
-  if (t < T_RUN) { const p = poses[0]; return { x: gx(p.c), y: gy(p.r), h: p.h, hop: 0, k: -1, f: 0 }; }
+  if (t < T_RUN) { const p = poses[0]; return { x: gx(p.c), y: gy(p.r), h: p.h, k: -1, move: 0 }; }
   const k = Math.min(CONFIG.program.length - 1, Math.floor((t - T_RUN) / STEP));
   const f = t >= T_END ? 1 : ((t - T_RUN) - k * STEP) / STEP;
   const a = poses[k], b = poses[k + 1];
-  const turn = easeOut(f / 0.3), move = easeOut((f - 0.25) / 0.6);
+  const turn = easeOut(f / 0.22);
+  const progress = clamp01((f - (a.h === b.h ? 0 : 0.22)) / (a.h === b.h ? 0.95 : 0.73));
+  const move = progress * progress * (3 - 2 * progress);
   return { x: gx(a.c) + (gx(b.c) - gx(a.c)) * move, y: gy(a.r) + (gy(b.r) - gy(a.r)) * move,
-    h: a.h + (b.h - a.h) * turn, hop: Math.sin(Math.PI * clamp01((f - 0.25) / 0.6)) * 0.035, k, f };
+    h: a.h + (b.h - a.h) * turn, k, move };
 }
 
 /* ================= 声音 ================= */
@@ -90,12 +94,16 @@ const shadowTex = canvasTex(64, 64, (ctx, w) => {
 });
 
 /* ================= 搭建场景（AR 和预览共用） ================= */
-function buildWorld(panelTex) {
+function buildWorld(panelImage, cardTex) {
   // 地图与卡面共用同一个朝向，道具沿卡面法线长出来。
   const outer = new THREE.Group(), root = new THREE.Group();
   outer.add(root);
   // 立体地图底板（贴卡上同一张地图）
   const boardSide = new THREE.MeshStandardMaterial({ color: 0x253064, roughness: 0.6 });
+  const panelTex = canvasTex(panelImage.width, panelImage.height, () => {});
+  const card = new THREE.Mesh(new THREE.PlaneGeometry(1000 / 900, 1400 / 900), new THREE.MeshBasicMaterial({ map: cardTex }));
+  card.position.set(0, -200 / 900, -0.001);
+  outer.add(card);
   const board = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 0.03), [boardSide, boardSide, boardSide, boardSide, new THREE.MeshBasicMaterial({ map: panelTex }), boardSide]);
   board.position.z = -0.015; root.add(board);
   const mat = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.05, ...extra });
@@ -128,11 +136,73 @@ function buildWorld(panelTex) {
     });
     return g;
   }
+  function shopDecoration(g, label) {
+    function mesh(geometry, color, x, y, z) {
+      const part = new THREE.Mesh(geometry, mat(color));
+      part.position.set(x, y, z);
+      g.add(part);
+      return part;
+    }
+    function oval(color, x, y, z, sx, sy, sz) {
+      const part = mesh(new THREE.SphereGeometry(1, 12, 8), color, x, y, z);
+      part.scale.set(sx, sy, sz);
+      return part;
+    }
+
+    if (label === '花店') {
+      for (const [x, z, color] of [[-0.045, 0.203, 0xff83af], [0, 0.231, 0xffba4a], [0.045, 0.197, 0xb384ed]]) {
+        const stem = mesh(new THREE.CylinderGeometry(0.005, 0.005, z - 0.12, 8), 0x4a9f62, x, 0, (z + 0.12) / 2);
+        stem.rotation.x = Math.PI / 2;
+        oval(0x69b96e, x + 0.012, 0, z - 0.03, 0.017, 0.006, 0.008).rotation.y = -0.5;
+        for (let i = 0; i < 5; i++) {
+          const angle = i * Math.PI * 2 / 5;
+          oval(color, x + Math.cos(angle) * 0.015, -0.007, z + Math.sin(angle) * 0.015, 0.010, 0.007, 0.010);
+        }
+        oval(0xffefab, x, -0.015, z, 0.01, 0.008, 0.01);
+      }
+    } else if (label === '面包') {
+      oval(0xa95728, 0, 0, 0.163, 0.080, 0.046, 0.027);
+      oval(0xe6a052, 0, 0, 0.180, 0.079, 0.045, 0.033);
+      for (const x of [-0.036, -0.002, 0.032]) {
+        oval(0xffdb8b, x, 0, 0.207, 0.006, 0.027, 0.008).rotation.z = -0.40;
+      }
+    } else if (label === '糖果') {
+      oval(0xf76a9a, 0, 0, 0.183, 0.043, 0.027, 0.035);
+      for (const x of [-0.013, 0.013]) {
+        const stripe = mesh(new THREE.TorusGeometry(0.026, 0.004, 8, 20), 0xffe0f0, x, 0, 0.183);
+        stripe.rotation.y = Math.PI / 2;
+        stripe.scale.y = 0.98;
+        stripe.scale.x = 1.25;
+      }
+      for (const side of [-1, 1]) {
+        const wrapper = mesh(new THREE.ConeGeometry(0.030, 0.049, 5), 0xf48ec1, side * 0.058, 0, 0.183);
+        wrapper.rotation.z = side * Math.PI / 2;
+      }
+    } else {
+      for (const side of [-1, 1]) {
+        const page = new THREE.Group();
+        page.position.set(side * 0.039, 0, 0.153);
+        page.rotation.y = side * 0.50;
+        const cover = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.123, 0.011), mat(0x287e87));
+        const paper = new THREE.Mesh(new THREE.BoxGeometry(0.078, 0.112, 0.012), mat(0xfff2ca));
+        paper.position.z = 0.010;
+        page.add(cover, paper);
+        for (let i = 0; i < 5; i++) {
+          const line = new THREE.Mesh(new THREE.BoxGeometry(0.052 - i % 2 * 0.011, 0.0025, 0.001), mat(0xbdab82));
+          line.position.set(0, -0.037 + i * 0.016, 0.017);
+          page.add(line);
+        }
+        g.add(page);
+      }
+      mesh(new THREE.BoxGeometry(0.012, 0.126, 0.008), 0xeeb65d, 0, 0, 0.174);
+    }
+  }
   function stall(color, label) {
     const g = new THREE.Group();
     const body = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.09, 0.08), mat(0xffffff)); body.position.z = 0.04; g.add(body);
     const door = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.004, 0.05), mat(COL.ink)); door.position.set(0, -0.046, 0.025); g.add(door);
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.08, 4), mat(color, { flatShading: true })); roof.rotation.set(Math.PI / 2, Math.PI / 4, 0); roof.position.z = 0.12; g.add(roof);
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(0.143, 0.107, 0.014), mat(color));
+    roof.position.z = 0.13; g.add(roof);
     // 条纹雨棚
     for (let i = 0; i < 5; i++) {
       const s = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.05, 0.006), mat(i % 2 ? 0xffffff : color));
@@ -145,6 +215,7 @@ function buildWorld(panelTex) {
     });
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(0.09, 0.039), new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide }));
     sign.rotation.x = Math.PI / 2; sign.position.set(0, -0.1, 0.13); g.add(sign);
+    shopDecoration(g, label);
     return g;
   }
   function qblock() {
@@ -221,6 +292,17 @@ function buildWorld(panelTex) {
   const flagHolder = new THREE.Group(); flagHolder.add(flag); root.add(flagHolder);
   root.add(car);
   const carShadow = blob(0.09); root.add(carShadow);
+  const trailMaterial = new THREE.MeshBasicMaterial({ color: 0x2186CE });
+  const trailGeometry = new THREE.PlaneGeometry(1, 0.025);
+  const trail = poses.slice(1).map((destination, index) => {
+    const origin = poses[index];
+    const x = gx(origin.c), y = gy(origin.r);
+    const dx = gx(destination.c) - x, dy = gy(destination.r) - y;
+    const segment = new THREE.Mesh(trailGeometry, trailMaterial);
+    segment.rotation.z = Math.atan2(dy, dx);
+    root.add(segment);
+    return { segment, x, y, dx, dy };
+  });
 
   /* ---------- 爆金币 ---------- */
   const coinG = new THREE.CylinderGeometry(0.03, 0.03, 0.008, 20);
@@ -343,14 +425,15 @@ function buildWorld(panelTex) {
 
     // 2. 小车
     const p = carPose(t);
-    const drop = clamp01((t - 1.8) / 0.5);
-    const zDrop = t < T_RUN ? (1 - easeOut(drop)) * 0.5 : 0;
-    car.visible = t > 1.8;
-    car.position.set(p.x, p.y, zDrop + p.hop); car.rotation.z = p.h;
-    car.rotation.x = t >= T_RUN && t < T_END ? Math.sin(p.f * Math.PI) * -0.12 : 0;
-    carShadow.position.set(p.x, p.y, 0.003); carShadow.visible = car.visible;
-    flagHolder.position.set(p.x, p.y, car.position.z + 0.15); flagHolder.visible = car.visible;
-    if (t > 1.8) once('drop', () => beep(200, 0.2, 'triangle', 0.1, 0.4));
+    car.position.set(p.x, p.y, 0); car.rotation.z = p.h;
+    carShadow.position.set(p.x, p.y, 0.003);
+    flagHolder.position.set(p.x, p.y, 0.15);
+    trail.forEach(({ segment, x, y, dx, dy }, index) => {
+      const progress = index < p.k ? 1 : index === p.k ? p.move : 0;
+      segment.visible = progress > 0;
+      segment.position.set(x + dx * progress / 2, y + dy * progress / 2, 0.004);
+      segment.scale.x = Math.hypot(dx, dy) * progress;
+    });
     drawCode(t < T_RUN ? -1 : t >= T_END ? CONFIG.program.length : p.k);
 
     // 3. 爆金币
@@ -441,6 +524,8 @@ function buildWorld(panelTex) {
       obj.rotation.z = THREE.MathUtils.degToRad(rotation);
       if (shadow) shadow.position.set(obj.position.x, obj.position.y, 0.002);
     }
+    drawMap(panelTex.userData.ctx, panelImage, items, applied);
+    panelTex.needsUpdate = true;
     return applied;
   }
   return {
@@ -453,50 +538,62 @@ function buildWorld(panelTex) {
 /* ================= 播放控制 ================= */
 const $ = id => document.getElementById(id);
 let world, t0 = null, playing = false;
-function play() { world.reset(); t0 = performance.now(); playing = true; $('hud').classList.add('hidden'); $('coins').textContent = '金币 0'; $('coins').classList.remove('hidden'); }
+function play(offset = 0) {
+  world.reset(); t0 = performance.now() - offset * 1000; playing = true;
+  $('depart').classList.add('hidden'); $('hud').classList.add('hidden');
+  $('coins').textContent = '金币 0'; $('coins').classList.remove('hidden');
+}
 function tick() {
   if (!world) return;
-  const t = playing ? (performance.now() - t0) / 1000 : 0;
+  const t = playing ? (performance.now() - t0) / 1000 : READY_TIME;
   world.update(t);
 }
-function wireHooks() {
+function wireHooks(offset = 0) {
   world.hooks.onCoin = n => { $('coins').textContent = '金币 ' + n; };
   world.hooks.onEnd = () => { $('hud').classList.remove('hidden'); };
-  $('replay').onclick = () => play();
-}
-function loadPanel() {
-  return new Promise((res, rej) => new THREE.TextureLoader().load('./assets/panel.png', tex => { tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8; res(tex); }, undefined, rej));
+  $('replay').onclick = () => play(offset);
 }
 async function loadWorld() {
   const layoutRequest = fetch('./scene-layout.json')
     .then(response => response.ok ? response.json() : null)
     .catch(() => null);
-  const [panel, layout] = await Promise.all([loadPanel(), layoutRequest]);
-  const result = buildWorld(panel);
-  return { world: result, layout: result.applyLayout(layout) };
+  const loader = new THREE.TextureLoader();
+  const [panel, card, layout] = await Promise.all([
+    loader.loadAsync('./assets/panel.png'), loader.loadAsync('./assets/card.png'), layoutRequest,
+  ]);
+  card.colorSpace = THREE.SRGBColorSpace;
+  const result = buildWorld(panel.image, card);
+  return { world: result, layout: result.applyLayout(layout), panelImage: panel.image };
 }
 function initAudio() { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume(); } catch (e) {} }
 
 /* ================= AR 模式 ================= */
 let mindarInst = null;
 async function startAR(fromTap = false) {
-  initAudio();
   ['start', 'err'].forEach(id => $(id).classList.add('hidden')); $('loading').classList.remove('hidden');
   try {
     const { MindARThree } = await import('./lib/mindar-image-three.prod.js');
     const mindar = mindarInst = new MindARThree({
       container: $('ar'), imageTargetSrc: './assets/targets.mind',
       uiLoading: 'no', uiScanning: '#scanning', uiError: 'no',
-      warmupTolerance: 2, missTolerance: 10,
+      warmupTolerance: 4, missTolerance: 10,
+      // MindAR feeds this filter timestamps in milliseconds.
+      filterMinCF: 0.00075, filterBeta: 0.015,
     });
     const { renderer, scene, camera } = mindar;
-    ({ world } = await loadWorld()); wireHooks(); world.setCamera(camera);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+    ({ world } = await loadWorld()); wireHooks(READY_TIME); world.setCamera(camera);
     const anchor = mindar.addAnchor(0);
     anchor.group.add(world.root);
     let lostAt = null;
+    $('depart').onclick = () => {
+      if (!anchor.visible || playing) return;
+      initAudio();
+      play(READY_TIME);
+    };
     anchor.onTargetFound = () => {
-      if (!playing) play();
-      if (lostAt !== null) t0 += performance.now() - lostAt;
+      if (!playing) $('depart').classList.remove('hidden');
+      if (playing && lostAt !== null) t0 += performance.now() - lostAt;
       lostAt = null;
       $('replay').disabled = false;
       $('orbit').classList.remove('hidden');
@@ -504,6 +601,7 @@ async function startAR(fromTap = false) {
     anchor.onTargetLost = () => {
       lostAt = performance.now();
       $('replay').disabled = true;
+      $('depart').classList.add('hidden');
       $('scan-tip').textContent = '把地图移回镜头，继续播放';
     };
     // 有些手机/微信不允许不点屏幕就开摄像头：15 秒没开起来就当失败
@@ -518,7 +616,7 @@ async function startAR(fromTap = false) {
     console.error(e);
     try { mindarInst && mindarInst.stop(); } catch (_) {}
     mindarInst = null; world = null; playing = false; $('ar').innerHTML = '';
-    $('loading').classList.add('hidden'); $('scanning').classList.add('hidden');
+    $('loading').classList.add('hidden'); $('scanning').classList.add('hidden'); $('depart').classList.add('hidden');
     // 自动打开失败 → 给一个大按钮让用户点一下再试；点了还失败才显示错误页
     $(fromTap ? 'err' : 'start').classList.remove('hidden');
   }
@@ -573,15 +671,11 @@ async function startPreview() {
   const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 20); camera.up.set(0, 0, 1);
   const updateView = previewOrbit(camera, renderer.domElement);
   $('orbit-tip').classList.remove('hidden');
-  const cardImg = new THREE.TextureLoader().load('./assets/card.png'); cardImg.colorSpace = THREE.SRGBColorSpace;
-  const cw = 1000 / 900, ch = 1400 / 900;
-  const card = new THREE.Mesh(new THREE.PlaneGeometry(cw, ch), new THREE.MeshBasicMaterial({ map: cardImg }));
-  card.position.set(0, -(ch / 2 - 50 / 900 - 0.5), -0.001); scene.add(card);
   const loaded = await loadWorld();
   world = loaded.world; world.setCamera(camera); scene.add(world.root);
   if (editing) {
     const { mountEditor } = await import('./editor.js');
-    mountEditor(world.items, loaded.layout, world.applyLayout);
+    mountEditor(world.items, loaded.layout, world.applyLayout, loaded.panelImage);
   } else {
     wireHooks();
     play();

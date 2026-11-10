@@ -19,7 +19,7 @@
   .link{background:none;border:0;color:#4a5383;font-size:15px;text-decoration:underline;font-family:inherit}
   .tip{font-size:13px;color:#8a90b0;max-width:320px;line-height:1.6}
   #scanning{pointer-events:none;z-index:10;justify-content:flex-end;padding-bottom:calc(60px + env(safe-area-inset-bottom))}
-  #scanning .frame{position:absolute;left:50%;top:44%;width:66vmin;height:66vmin;transform:translate(-50%,-50%);border-radius:18px;
+  #scanning .frame{position:absolute;left:50%;top:44%;width:min(66vmin,48vh);aspect-ratio:5/7;transform:translate(-50%,-50%);border-radius:18px;
     background:linear-gradient(var(--gold),var(--gold)) left top/34px 6px no-repeat,linear-gradient(var(--gold),var(--gold)) left top/6px 34px no-repeat,
     linear-gradient(var(--gold),var(--gold)) right top/34px 6px no-repeat,linear-gradient(var(--gold),var(--gold)) right top/6px 34px no-repeat,
     linear-gradient(var(--gold),var(--gold)) left bottom/34px 6px no-repeat,linear-gradient(var(--gold),var(--gold)) left bottom/6px 34px no-repeat,
@@ -31,6 +31,8 @@
   #hud{position:fixed;left:0;right:0;bottom:calc(24px + env(safe-area-inset-bottom));z-index:12;display:flex;justify-content:center;gap:12px;pointer-events:none}
   #hud .btn{pointer-events:auto;font-size:17px;padding:12px 28px}
   #replay:disabled{opacity:.55}
+  #depart{position:fixed;inset:0;z-index:11;border:0;background:none;cursor:pointer;color:#fff;font:inherit}
+  #depart span{position:absolute;bottom:calc(32px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);white-space:nowrap}
   #orbit,#orbit-tip{position:fixed;top:calc(16px + env(safe-area-inset-top));left:16px;z-index:12;font-size:14px}
   #orbit{padding:10px 14px;border-radius:999px;background:var(--cream);color:var(--ink);font-weight:800;text-decoration:none}
   #orbit-tip{top:calc(66px + env(safe-area-inset-top));pointer-events:none}
@@ -57,7 +59,7 @@
 
 <div id="start" class="overlay hidden">
   <h1>魔法集市 · 寻宝记</h1>
-  <p>点一下按钮打开摄像头，<br>再把手机对准贺卡上的<b>地图</b></p>
+  <p>点一下按钮打开摄像头，<br>再让<b>整张贺卡</b>进入镜头</p>
   <button class="btn" id="go">打开摄像头</button>
   <button class="link" id="preview">没有贺卡？直接看预览</button>
   <div class="tip">如果打不开摄像头：请点右上角「…」选择「在浏览器中打开」</div>
@@ -72,13 +74,14 @@
   </div>
 </div>
 <div id="loading" class="overlay hidden">正在准备魔法…</div>
-<div id="scanning" class="overlay hidden"><div class="frame"></div><div class="pill" id="scan-tip">把完整地图放进镜头</div></div>
+<div id="scanning" class="overlay hidden"><div class="frame"></div><div class="pill" id="scan-tip">把整张贺卡放进镜头</div></div>
 <div id="err" class="overlay hidden">
   <h2 style="margin:0">摄像头没有打开</h2>
   <p class="tip" style="font-size:15px">请允许使用摄像头后刷新；在微信里打不开时，点右上角「…」→「在浏览器中打开」。</p>
   <button class="btn" id="err-preview">先看预览</button>
 </div>
 <div id="coins" class="hidden">🪙 0</div>
+<button type="button" id="depart" class="hidden"><span class="btn">点击屏幕，小车出发</span></button>
 <a id="orbit" class="hidden" href="?preview">360° 预览</a>
 <div id="orbit-tip" class="pill hidden">拖动画面，绕着地图看</div>
 <div id="hud" class="hidden"><button class="btn" id="replay">再看一次</button></div>
