@@ -19,6 +19,7 @@ const STEP = 0.85;                 // 每块积木执行秒数
 const T_RUN = 3.0;                 // 开始执行时间
 const READY_TIME = T_RUN - 1;
 const INTRO_DURATION = 2;
+const GROW_DURATION = 0.62;
 const T_END = T_RUN + CONFIG.program.length * STEP;
 const COINS_PER_STEP = 6;
 const FONT = '"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif';
@@ -246,7 +247,8 @@ function buildWorld(panelImage, cardTex) {
   const fCol = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 0.1, 16), mat(0xffffff)); fCol.rotation.x = Math.PI / 2; fCol.position.z = 0.08; fountain.add(fCol);
   const fBowl = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.03, 0.025, 24), mat(0xE8F4FB)); fBowl.rotation.x = Math.PI / 2; fBowl.position.z = 0.14; fountain.add(fBowl);
   const fountainItem = register('fountain', '喷泉', fountain, null, 3.5, 3.5);
-  props.push({ item: fountainItem, motion: fountain, entrance: 'drop', delay: 0.63 });
+  const fountainDelay = 0.63;
+  props.push({ item: fountainItem, motion: fountain, entrance: 'grow', delay: fountainDelay });
   // 喷泉水花（循环粒子）
   const WN = 70, wGeo = new THREE.BufferGeometry(), wPos = new Float32Array(WN * 3);
   wGeo.setAttribute('position', new THREE.BufferAttribute(wPos, 3));
@@ -417,7 +419,7 @@ function buildWorld(panelImage, cardTex) {
       item.obj.visible = elapsed > 0;
       motion.scale.setScalar(scale);
       if (entrance === 'grow') {
-        const growth = Math.max(0, backOut(elapsed / 0.62));
+        const growth = Math.max(0, backOut(elapsed / GROW_DURATION));
         const width = (0.28 + 0.72 * growth) * scale;
         motion.scale.set(width, width, Math.max(0.001, growth) * scale);
       } else if (entrance === 'drop') {
@@ -441,7 +443,8 @@ function buildWorld(panelImage, cardTex) {
       wPos[i * 3] = Math.cos(a) * sp * ph; wPos[i * 3 + 1] = Math.sin(a) * sp * ph;
       wPos[i * 3 + 2] = Math.max(0.04, 0.15 + 0.55 * ph - 0.6 * ph * ph);
     }
-    wGeo.attributes.position.needsUpdate = true; water.visible = introTime > 1.27;
+    wGeo.attributes.position.needsUpdate = true;
+    water.visible = introTime >= fountainDelay + GROW_DURATION;
 
     // 2. 小车
     const p = carPose(t);
@@ -580,7 +583,7 @@ function wireHooks(offset = 0) {
   $('replay').onclick = () => play(offset);
 }
 async function loadWorld() {
-  const layoutRequest = fetch('./scene-layout.json')
+  const layoutRequest = fetch('./scene-layout.json', { cache: 'no-cache' })
     .then(response => response.ok ? response.json() : null)
     .catch(() => null);
   const loader = new THREE.TextureLoader();
