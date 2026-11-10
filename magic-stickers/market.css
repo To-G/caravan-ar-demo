@@ -1,0 +1,27 @@
+:root{font-family:"Microsoft YaHei","PingFang SC",sans-serif;color:#fff4de;background:#161425;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh}
+[hidden]{display:none!important}
+main,#stage{position:fixed;inset:0}
+#stage canvas{display:block}
+#stage canvas.orbit{touch-action:none;cursor:grab}
+header{position:fixed;z-index:2;top:max(16px,env(safe-area-inset-top));left:22px;right:22px;display:flex;align-items:flex-start;justify-content:space-between;gap:14px;pointer-events:none}
+h1,h2,p{margin:0}
+h1{margin-top:4px;font-size:clamp(19px,4vw,34px);line-height:1.25}
+.title{border-radius:15px;padding:9px 13px;background:#161425d9}
+.eyebrow{font-size:10px;font-weight:bold;color:#ffd589;letter-spacing:2px}
+nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;pointer-events:auto}
+button,a{font:inherit}
+nav a,footer button{color:#fff4de;text-decoration:none;border:1px solid #6a5c7d;background:#211a30ea;border-radius:12px;padding:9px 12px;white-space:nowrap;font-size:13px}
+button{cursor:pointer}
+.panel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:3;width:min(90vw,410px);padding:26px;display:grid;gap:15px;border:1px solid #8e7298;border-radius:24px;background:#211a30;box-shadow:0 24px 70px #0c0a16;line-height:1.6}
+.panel p{color:#e7d8ea}
+.panel a{color:#ffd589;font-size:14px}
+.panel button{background:#ffce83;color:#2f2036;border:0;border-radius:12px;padding:11px 16px;font-weight:bold}
+footer{z-index:2;position:fixed;left:22px;right:22px;bottom:max(18px,env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:space-between;gap:12px;pointer-events:none}
+footer p{background:#161425e8;padding:9px 12px;border-radius:12px;font-size:13px;color:#fff1d8}
+footer button{pointer-events:auto}
+#camera-picker{position:fixed;top:108px;left:22px;z-index:2;padding:6px 9px;border-radius:9px;background:#211a30;color:#ffdfae;font-size:12px}
+#camera-choice{max-width:160px;margin-left:4px;font:inherit}
+body.ar{background:transparent}
+@media(max-width:560px){header{left:10px;right:10px;gap:5px}nav{gap:4px}nav a{padding:7px 8px;font-size:12px}footer{left:10px;right:10px}#camera-picker{left:10px;top:86px}}

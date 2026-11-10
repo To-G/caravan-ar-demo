@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="360" viewBox="0 0 360 360">
+  <path fill="#322944" d="M0 0h360v360H0z"/>
+  <path fill="#e6d6f5" d="M17 52l65-32 233-4 29 61-7 236-85 30-208-7L17 267z"/>
+  <path fill="#7760ab" d="M17 51l64-32 38 39-46 46-52 13zm230 213 94-18-5 65-83 31-40-34z"/>
+  <path fill="#efac66" d="M253 18l60 1 20 35-34 32-43-24zM31 282l49-25 37 77-72-1z"/>
+  <path fill="#52365c" stroke="#382740" stroke-width="7" d="M63 139l120-43 123 21 20 111-126 58-124-20z"/>
+  <path fill="#fff0bf" stroke="#4d3562" stroke-width="7" d="M66 118q70-46 115-20 48-47 114-10l18 116q-67-13-112 47-53-37-116-11z"/>
+  <path fill="none" stroke="#ab7a82" stroke-width="7" stroke-linecap="round" d="M90 140q42-27 79-14m-75 40q47-24 81-12m-78 36q42-18 82-10m30-56q34-28 69-21m-66 48q39-28 69-23m-64 48q36-23 66-23"/>
+  <path fill="#c85386" stroke="#4d3562" stroke-width="5" d="M187 98l20 141 23 18-15-151z"/>
+  <path fill="#f2b751" stroke="#533755" stroke-width="5" d="M118 50l12-19 18 18-13 19zm163 223 10-19 17 6-4 21zm-128 25 9-14 15 16-13 15z"/>
+  <path fill="#f9eef8" d="M43 73l20-11 5 9-20 11zm260 218 16-8 4 8-17 9z"/>
+</svg>

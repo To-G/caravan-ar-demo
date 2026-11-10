@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>魔法集市 · 贴纸打印稿</title>
+  <style>
+    :root{font-family:"Microsoft YaHei","PingFang SC",sans-serif;color:#30263b;background:#eae5ef}
+    *{box-sizing:border-box}body{margin:0}h1,p{margin:0}
+    main{width:min(100%,210mm);margin:0 auto;padding:12mm 10mm;background:white;min-height:210mm}
+    header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:7mm}
+    header p{margin-top:4mm;color:#5e5067;line-height:1.65}
+    h1{font-size:26px}
+    button,a{font:inherit;color:inherit}
+    button{padding:8px 12px;cursor:pointer}
+    .stickers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4mm}
+    figure{margin:0;padding:2mm;border:1px dashed #826c88;text-align:center;break-inside:avoid}
+    figure img{display:block;width:100%;aspect-ratio:1}
+    figcaption{padding-top:2mm;font-size:14px;font-weight:bold}
+    .notes{margin-top:8mm;display:flex;gap:6mm;align-items:center;padding:5mm;background:#f6f0fa;border-radius:3mm}
+    .notes img{width:29mm;aspect-ratio:1;flex:none}
+    .notes p{line-height:1.65}
+    .notes strong{display:block;margin-bottom:1mm}
+    @page{size:A4 portrait;margin:9mm}
+    @media print{html,body{background:white}main{padding:4mm 0;min-height:0}button,.screen-only{display:none}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+    @media screen and (max-width:520px){main{padding:18px 12px}header{margin-bottom:20px}.stickers{gap:5px}figure{padding:4px}}
+  </style>
+</head>
+<body>
+  <main>
+    <header><div><h1>魔法集市召唤贴纸</h1><p>沿虚线剪下三张贴纸，把它们摆在一张纸或卡片上。图案保持完整，摆放时可以转动，也可以交换位置。</p></div><button type="button" onclick="window.print()">打印</button></header>
+    <div class="stickers">
+      <figure><img src="./assets/flower.svg" alt="花店识别图"><figcaption>花店</figcaption></figure>
+      <figure><img src="./assets/fountain.svg" alt="喷泉识别图"><figcaption>喷泉</figcaption></figure>
+      <figure><img src="./assets/book.svg" alt="书店识别图"><figcaption>书店</figcaption></figure>
+    </div>
+    <div class="notes"><img src="./assets/scan-qr.png" alt="魔法集市召唤卡入口二维码"><p><strong>扫码召唤集市</strong>微信扫一扫打开网页，点「打开相机」，再对准摆好的贴纸。可以先从一张开始试。<br><a class="screen-only" href="./?ar">打开扫贴纸页</a></p></div>
+  </main>
+</body>
+</html>

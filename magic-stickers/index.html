@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#161425">
+  <title>魔法集市召唤卡</title>
+  <link rel="stylesheet" href="./market.css">
+  <script type="importmap">{"imports":{"three":"../lib/three.module.js","three/addons/":"../lib/addons/"}}</script>
+</head>
+<body>
+  <main>
+    <div id="stage"></div>
+    <header>
+      <div class="title"><span class="eyebrow">实体贴纸 AR</span><h1>魔法集市召唤卡</h1></div>
+      <nav><a href="./?preview">3D 预览</a><a href="./print.html">打印贴纸</a></nav>
+    </header>
+    <section id="welcome" class="panel" hidden>
+      <h2>把集市贴出来</h2>
+      <p>摆好花店、喷泉和书店的贴纸，让图案进入镜头。挪一挪贴纸，再看看集市如何变化。</p>
+      <button type="button" id="start">打开相机</button>
+      <a href="./?preview">先看 3D 预览</a>
+    </section>
+    <label id="camera-picker" hidden>镜头 <select id="camera-choice"></select></label>
+    <footer hidden id="controls">
+      <p id="status" role="status"></p>
+      <button type="button" id="replay">重演开场</button>
+    </footer>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
