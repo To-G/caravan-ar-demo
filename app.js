@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { drawMap } from './map-art.js';
+import { openCardCamera, savedCamera, saveCamera, stopStream } from './camera.js';
 
 /* ================= 配置：以后做「每个孩子专属」只改这里 ================= */
 const CONFIG = {
@@ -600,9 +601,34 @@ function initAudio() { try { actx = actx || new (window.AudioContext || window.w
 let mindarInst = null;
 async function startAR(fromTap = false) {
   ['start', 'err'].forEach(id => $(id).classList.add('hidden')); $('loading').classList.remove('hidden');
+  const cameraStart = new AbortController();
+  let cameraInfo, timeout;
   try {
     const { MindARThree } = await import('./lib/mindar-image-three.prod.js');
-    const mindar = mindarInst = new MindARThree({
+    const preferred = savedCamera();
+    class CardMindAR extends MindARThree {
+      async _startVideo() {
+        cameraInfo = await openCardCamera(navigator.mediaDevices, preferred, cameraStart.signal);
+        const video = this.video = document.createElement('video');
+        video.autoplay = video.muted = video.playsInline = true;
+        Object.assign(video.style, { position: 'absolute', top: '0', left: '0', zIndex: '-2' });
+        this.container.appendChild(video);
+        await new Promise((resolve, reject) => {
+          video.addEventListener('loadedmetadata', () => {
+            if (cameraStart.signal.aborted) {
+              reject(new Error('Camera start cancelled'));
+              return;
+            }
+            video.width = video.videoWidth;
+            video.height = video.videoHeight;
+            resolve();
+          }, { once: true });
+          video.addEventListener('error', () => reject(new Error('Camera video failed')), { once: true });
+          video.srcObject = cameraInfo.stream;
+        });
+      }
+    }
+    const mindar = mindarInst = new CardMindAR({
       container: $('ar'), imageTargetSrc: './assets/targets.mind',
       uiLoading: 'no', uiScanning: '#scanning', uiError: 'no',
       warmupTolerance: 4, missTolerance: 10,
@@ -643,8 +669,23 @@ async function startAR(fromTap = false) {
         : '把地图移回镜头，小车等你出发';
     };
     // 有些手机/微信不允许不点屏幕就开摄像头：15 秒没开起来就当失败
-    const ok = await Promise.race([mindar.start().then(() => true), new Promise(r => setTimeout(() => r(false), 15000))]);
+    const ok = await Promise.race([mindar.start().then(() => true), new Promise(r => { timeout = setTimeout(() => r(false), 15000); })]);
     if (!ok) throw new Error('camera start timeout');
+    const select = $('camera-choice');
+    if (cameraInfo.devices.length > 1) {
+      select.replaceChildren(new Option('自动 · ' + (cameraInfo.label || '后置镜头'), ''));
+      cameraInfo.devices.forEach(({ label, deviceId }, index) => {
+        select.add(new Option(label || '摄像头 ' + (index + 1), deviceId));
+      });
+      select.value = cameraInfo.current === preferred ? preferred : '';
+      select.onchange = () => {
+        if (saveCamera(select.value)) {
+          stopStream(cameraInfo.stream);
+          location.reload();
+        }
+      };
+      $('camera-picker').classList.remove('hidden');
+    }
     $('loading').classList.add('hidden');
     renderer.setAnimationLoop(() => {
       if (anchor.visible) {
@@ -663,11 +704,15 @@ async function startAR(fromTap = false) {
     });
   } catch (e) {
     console.error(e);
+    cameraStart.abort();
+    stopStream(cameraInfo?.stream);
     try { mindarInst && mindarInst.stop(); } catch (_) {}
     mindarInst = null; world = null; playing = false; $('ar').innerHTML = '';
     $('loading').classList.add('hidden'); $('scanning').classList.add('hidden'); $('depart').classList.add('hidden');
     // 自动打开失败 → 给一个大按钮让用户点一下再试；点了还失败才显示错误页
     $(fromTap ? 'err' : 'start').classList.remove('hidden');
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

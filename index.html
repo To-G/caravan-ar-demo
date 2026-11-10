@@ -36,6 +36,8 @@
   #orbit,#orbit-tip{position:fixed;top:calc(16px + env(safe-area-inset-top));left:16px;z-index:12;font-size:14px}
   #orbit{padding:10px 14px;border-radius:999px;background:var(--cream);color:var(--ink);font-weight:800;text-decoration:none}
   #orbit-tip{top:calc(66px + env(safe-area-inset-top));pointer-events:none}
+  #camera-picker{position:fixed;top:calc(64px + env(safe-area-inset-top));left:16px;z-index:13;display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:12px;background:var(--cream);color:var(--ink);font-size:13px}
+  #camera-choice{max-width:min(185px,54vw);min-height:26px;border:0;background:transparent;color:inherit;font:inherit}
   #ar canvas.orbit-view{touch-action:none;cursor:grab}
   #ar canvas.orbit-view:active{cursor:grabbing}
   #coins{position:fixed;top:calc(16px + env(safe-area-inset-top));right:16px;z-index:12;background:rgba(255,244,226,.94);color:var(--ink);font-weight:800;font-size:18px;padding:8px 16px;border-radius:999px;border:3px solid var(--ink)}
@@ -83,6 +85,7 @@
 <div id="coins" class="hidden">🪙 0</div>
 <button type="button" id="depart" class="hidden"><span class="btn">点击屏幕，小车出发</span></button>
 <a id="orbit" class="hidden" href="?preview">360° 预览</a>
+<label id="camera-picker" class="hidden">镜头 <select id="camera-choice"></select></label>
 <div id="orbit-tip" class="pill hidden">拖动画面，绕着地图看</div>
 <div id="hud" class="hidden"><button class="btn" id="replay">再看一次</button></div>
 
