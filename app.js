@@ -91,9 +91,9 @@ const shadowTex = canvasTex(64, 64, (ctx, w) => {
 
 /* ================= 搭建场景（AR 和预览共用） ================= */
 function buildWorld(panelTex) {
-  // outer = 贴在贺卡上；tilt = 会根据手机角度"立起来"的整块立体地图
-  const outer = new THREE.Group(), tilt = new THREE.Group(), root = new THREE.Group();
-  outer.add(tilt); tilt.add(root);
+  // 地图与卡面共用同一个朝向，道具沿卡面法线长出来。
+  const outer = new THREE.Group(), root = new THREE.Group();
+  outer.add(root);
   // 立体地图底板（贴卡上同一张地图）
   const boardSide = new THREE.MeshStandardMaterial({ color: 0x253064, roughness: 0.6 });
   const board = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 0.03), [boardSide, boardSide, boardSide, boardSide, new THREE.MeshBasicMaterial({ map: panelTex }), boardSide]);
@@ -306,19 +306,10 @@ function buildWorld(panelTex) {
   let fired = new Set();
   const once = (k, fn) => { if (!fired.has(k)) { fired.add(k); fn(); } };
   let coinCount = 0;
-  const _ws = new THREE.Vector3(), _cp = new THREE.Vector3(); let WS = 1, tiltAngle = 0;
+  const _ws = new THREE.Vector3(); let WS = 1;
   function update(t) {
     // 粒子大小不会随 AR 锚点缩放，这里手动乘上世界缩放
     outer.updateWorldMatrix(true, false); outer.getWorldScale(_ws); WS = _ws.x;
-    // 根据手机看卡的角度自动把地图"立起来"：正对着看时地图向后倒 ~55°，像看桌上的立体模型
-    if (cam && (!outer.parent || outer.parent.visible)) {
-      cam.getWorldPosition(_cp); outer.worldToLocal(_cp); _cp.normalize();
-      const pitch = Math.atan2(-_cp.y, Math.max(0.05, _cp.z));          // 0 = 正对，正数 = 从卡片下方斜着看
-      const target = -Math.min(1.05, Math.max(0, 0.95 - pitch));
-      if (Number.isFinite(target)) tiltAngle += (target - tiltAngle) * 0.06;
-      if (!Number.isFinite(tiltAngle)) tiltAngle = 0;
-    }
-    tilt.rotation.x = tiltAngle * clamp01(t / 1.2);
     water.material.size = 0.022 * WS;
     // 1. 道具从卡里“长”出来：先竖着拉高，再弹一下
     props.forEach((p, i) => {
