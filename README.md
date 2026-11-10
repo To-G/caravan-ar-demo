@@ -5,7 +5,8 @@
 - 在线扫码体验：https://legendary-fairy-f55911.netlify.app/?ar
 - 在线 360° 预览：https://legendary-fairy-f55911.netlify.app/?preview
 - 场景编辑：https://legendary-fairy-f55911.netlify.app/?edit
-- `print-card.png`：1000 × 1400 印刷稿。扫码后把整张卡放进镜头，等出现「点击屏幕，小车出发」。点击后等一秒，小车开始逐格行进并画出路线。
+- `print-card.png`：1000 × 1400 印刷稿。扫码后把整张卡放进镜头，等地图出场动画结束并出现「点击屏幕，小车出发」。点击后等一秒，小车开始逐格行进并画出路线。
+- 同一个页面里，暂时移开卡片再扫回来会恢复原进度。出场播完后会直接恢复场景，「再看一次」只重跑小车。刷新或重新打开页面会重新播放出场。
 - `offline-preview.html`：双击查看早期固定演示。最新效果请使用在线入口。
 
 ## 调整场景

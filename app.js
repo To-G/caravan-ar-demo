@@ -18,6 +18,7 @@ const CELL = 1 / 6;
 const STEP = 0.85;                 // 每块积木执行秒数
 const T_RUN = 3.0;                 // 开始执行时间
 const READY_TIME = T_RUN - 1;
+const INTRO_DURATION = 2;
 const T_END = T_RUN + CONFIG.program.length * STEP;
 const COINS_PER_STEP = 6;
 const FONT = '"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif';
@@ -119,13 +120,17 @@ function buildWorld(panelImage, cardTex) {
     items.push(item);
     return item;
   }
-  function addProp(id, label, obj, c, r, shadowR, extraDelay = 0, fixed = false) {
-    const g = new THREE.Group(); g.position.set(gx(c), gy(r), 0); g.add(obj); root.add(g);
+  function addProp(id, label, obj, c, r, shadowR, entrance, delay, fixed = false) {
+    const g = new THREE.Group(); g.position.set(gx(c), gy(r), 0); root.add(g);
+    const motion = new THREE.Group();
+    if (entrance === 'fold') {
+      motion.position.y = -0.05;
+      obj.position.y = 0.05;
+    }
+    motion.add(obj); g.add(motion);
     const sh = blob(shadowR); sh.position.set(gx(c), gy(r), 0.002); root.add(sh);
-    // 离起点越远越晚长出来，像波浪
-    const d = Math.hypot(c - 0, r - 5) * 0.09 + 0.2 + extraDelay;
-    props.push({ item: register(id, label, g, sh, c, r, fixed), obj: g, shadow: sh, delay: d });
-    return g;
+    props.push({ item: register(id, label, g, sh, c, r, fixed), motion, entrance, delay });
+    return obj;
   }
   function tree() {
     const g = new THREE.Group();
@@ -228,11 +233,11 @@ function buildWorld(panelImage, cardTex) {
   }
 
   [[1, 4], [0, 0], [5, 5], [1, 1], [5, 3]].forEach(([c, r], i) =>
-    addProp('tree-' + (i + 1), '树 ' + (i + 1), tree(), c, r, 0.07));
+    addProp('tree-' + (i + 1), '树 ' + (i + 1), tree(), c, r, 0.07, 'grow', 0.06 + i * 0.10));
   [[3, 5, COL.coral, '糖果'], [5, 0, COL.teal, '书店'], [0, 2, COL.plum, '花店'], [2, 5, COL.gold, '面包']].forEach(([c, r, col, label], i) =>
-    addProp('stall-' + (i + 1), label, stall(col, label), c, r, 0.09));
+    addProp('stall-' + (i + 1), label, stall(col, label), c, r, 0.09, 'fold', 0.72 + i * 0.12));
   const qblocks = [[2, 0], [4, 2], [1, 2]].map(([c, r], i) =>
-    addProp('block-' + (i + 1), '问号方块 ' + (i + 1), qblock(), c, r, 0.05, 0.2));
+    addProp('block-' + (i + 1), '问号方块 ' + (i + 1), qblock(), c, r, 0.05, 'drop', 0.36 + i * 0.11));
 
   // 喷泉（2×2 格中心）
   const fountain = new THREE.Group(); fountain.position.set(gx(3.5), gy(3.5), 0); root.add(fountain);
@@ -241,7 +246,7 @@ function buildWorld(panelImage, cardTex) {
   const fCol = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 0.1, 16), mat(0xffffff)); fCol.rotation.x = Math.PI / 2; fCol.position.z = 0.08; fountain.add(fCol);
   const fBowl = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.03, 0.025, 24), mat(0xE8F4FB)); fBowl.rotation.x = Math.PI / 2; fBowl.position.z = 0.14; fountain.add(fBowl);
   const fountainItem = register('fountain', '喷泉', fountain, null, 3.5, 3.5);
-  props.push({ item: fountainItem, obj: fountain, shadow: null, delay: 0.55 });
+  props.push({ item: fountainItem, motion: fountain, entrance: 'drop', delay: 0.63 });
   // 喷泉水花（循环粒子）
   const WN = 70, wGeo = new THREE.BufferGeometry(), wPos = new Float32Array(WN * 3);
   wGeo.setAttribute('position', new THREE.BufferAttribute(wPos, 3));
@@ -269,7 +274,7 @@ function buildWorld(panelImage, cardTex) {
   const lid = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.065, 0.02), mat(0xE89C55, { emissive: 0x6a3510, emissiveIntensity: 0.25 })); lid.position.set(0, -0.0325, 0.01); hinge.add(lid);
   const cGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xFFD966, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 }));
   cGlow.position.z = 0.07; chest.add(cGlow);
-  addProp('finish', '终点拱门和宝箱', gate, tc, tr, 0.1, 0.1, true);
+  addProp('finish', '终点拱门和宝箱', gate, tc, tr, 0.1, 'drop', 1.07, true);
 
   /* ---------- 小车 ---------- */
   const car = new THREE.Group();
@@ -400,19 +405,34 @@ function buildWorld(panelImage, cardTex) {
   const once = (k, fn) => { if (!fired.has(k)) { fired.add(k); fn(); } };
   let coinCount = 0;
   const _ws = new THREE.Vector3(); let WS = 1;
-  function update(t) {
+  function update(t, introTime) {
     // 粒子大小不会随 AR 锚点缩放，这里手动乘上世界缩放
     outer.updateWorldMatrix(true, false); outer.getWorldScale(_ws); WS = _ws.x;
     water.material.size = 0.022 * WS * fountainItem.value.scale;
-    // 1. 道具从卡里“长”出来：先竖着拉高，再弹一下
+    // 1. 同一条出场时间轴分别驱动生长、下落和翻起。
     props.forEach((p, i) => {
-      const g = backOut((t - p.delay) / 0.55);
-      const scale = p.item.value.scale;
-      const width = Math.max(0.001, 0.6 + 0.4 * g) * scale;
-      p.obj.scale.set(width, width, Math.max(0.001, g) * scale);
-      p.obj.visible = t > p.delay;
-      if (p.shadow) p.shadow.material.opacity = 1, p.shadow.scale.setScalar(Math.max(0.001, clamp01((t - p.delay) / 0.4)) * scale);
-      if (t > p.delay) once('pop' + i, () => sfx.pop(i % 6));
+      const elapsed = introTime - p.delay;
+      const { motion, entrance, item } = p;
+      const scale = item.value.scale;
+      item.obj.visible = elapsed > 0;
+      motion.scale.setScalar(scale);
+      if (entrance === 'grow') {
+        const growth = Math.max(0, backOut(elapsed / 0.62));
+        const width = (0.28 + 0.72 * growth) * scale;
+        motion.scale.set(width, width, Math.max(0.001, growth) * scale);
+      } else if (entrance === 'drop') {
+        const fall = clamp01(elapsed / 0.43);
+        const bounce = Math.sin(Math.PI * clamp01((elapsed - 0.43) / 0.21));
+        motion.position.z = 0.65 * (1 - fall * fall) + 0.08 * bounce;
+      } else {
+        motion.position.y = -0.05 * scale;
+        motion.rotation.x = -(1 - backOut(elapsed / 0.66)) * Math.PI / 2;
+      }
+      if (item.shadow) {
+        item.shadow.visible = elapsed > 0;
+        item.shadow.scale.setScalar(Math.max(0.001, clamp01(elapsed / 0.43)) * scale);
+      }
+      if (introTime < INTRO_DURATION && elapsed > 0) once('pop' + i, () => sfx.pop(i % 6));
     });
     qblocks.forEach((g, i) => { const c = g.children[0]; c.position.z = 0.12 + Math.sin(t * 2.4 + i) * 0.015; c.rotation.z = t * 0.8 + i; });
     // 喷泉水花
@@ -421,10 +441,16 @@ function buildWorld(panelImage, cardTex) {
       wPos[i * 3] = Math.cos(a) * sp * ph; wPos[i * 3 + 1] = Math.sin(a) * sp * ph;
       wPos[i * 3 + 2] = Math.max(0.04, 0.15 + 0.55 * ph - 0.6 * ph * ph);
     }
-    wGeo.attributes.position.needsUpdate = true; water.visible = t > 0.8;
+    wGeo.attributes.position.needsUpdate = true; water.visible = introTime > 1.27;
 
     // 2. 小车
     const p = carPose(t);
+    const ready = clamp01((introTime - 1.73) / 0.23);
+    car.visible = carShadow.visible = flagHolder.visible = codeHolder.visible = ready > 0;
+    car.scale.setScalar(Math.max(0.001, easeOut(ready)));
+    carShadow.scale.setScalar(ready);
+    flagHolder.scale.setScalar(ready);
+    codeHolder.scale.setScalar(Math.max(0.001, easeOut(ready)));
     car.position.set(p.x, p.y, 0); car.rotation.z = p.h;
     carShadow.position.set(p.x, p.y, 0.003);
     flagHolder.position.set(p.x, p.y, 0.15);
@@ -529,7 +555,7 @@ function buildWorld(panelImage, cardTex) {
     return applied;
   }
   return {
-    root: outer, update: t => { update(t); faceCamera(); }, reset, hooks,
+    root: outer, update: (t, introTime = Math.min(t, INTRO_DURATION)) => { update(t, introTime); faceCamera(); }, reset, hooks,
     setCamera: c => { cam = c; }, applyLayout,
     items: items.map(({ id, label, defaults, fixed }) => ({ id, label, defaults, fixed })),
   };
@@ -543,10 +569,10 @@ function play(offset = 0) {
   $('depart').classList.add('hidden'); $('hud').classList.add('hidden');
   $('coins').textContent = '金币 0'; $('coins').classList.remove('hidden');
 }
-function tick() {
+function tick(introTime) {
   if (!world) return;
   const t = playing ? (performance.now() - t0) / 1000 : READY_TIME;
-  world.update(t);
+  world.update(t, introTime);
 }
 function wireHooks(offset = 0) {
   world.hooks.onCoin = n => { $('coins').textContent = '金币 ' + n; };
@@ -585,31 +611,51 @@ async function startAR(fromTap = false) {
     ({ world } = await loadWorld()); wireHooks(READY_TIME); world.setCamera(camera);
     const anchor = mindar.addAnchor(0);
     anchor.group.add(world.root);
-    let lostAt = null;
+    let lostAt = null, introSince = null, introElapsed = 0;
+    const introDurationMs = INTRO_DURATION * 1000;
     $('depart').onclick = () => {
-      if (!anchor.visible || playing) return;
+      if (!anchor.visible || introElapsed < introDurationMs || playing) return;
       initAudio();
       play(READY_TIME);
     };
     anchor.onTargetFound = () => {
-      if (!playing) $('depart').classList.remove('hidden');
-      if (playing && lostAt !== null) t0 += performance.now() - lostAt;
+      const now = performance.now();
+      if (introElapsed < introDurationMs) introSince = now;
+      else if (!playing) $('depart').classList.remove('hidden');
+      if (playing && lostAt !== null) t0 += now - lostAt;
       lostAt = null;
       $('replay').disabled = false;
       $('orbit').classList.remove('hidden');
     };
     anchor.onTargetLost = () => {
       lostAt = performance.now();
+      if (introSince !== null) {
+        introElapsed = Math.min(introDurationMs, introElapsed + lostAt - introSince);
+        introSince = null;
+      }
       $('replay').disabled = true;
       $('depart').classList.add('hidden');
-      $('scan-tip').textContent = '把地图移回镜头，继续播放';
+      $('scan-tip').textContent = playing || introElapsed < introDurationMs
+        ? '把地图移回镜头，继续播放'
+        : '把地图移回镜头，小车等你出发';
     };
     // 有些手机/微信不允许不点屏幕就开摄像头：15 秒没开起来就当失败
     const ok = await Promise.race([mindar.start().then(() => true), new Promise(r => setTimeout(() => r(false), 15000))]);
     if (!ok) throw new Error('camera start timeout');
     $('loading').classList.add('hidden');
     renderer.setAnimationLoop(() => {
-      if (anchor.visible) tick();
+      if (anchor.visible) {
+        let introTime = introElapsed;
+        if (introSince !== null) {
+          introTime = Math.min(introDurationMs, introElapsed + performance.now() - introSince);
+          if (introTime >= introDurationMs) {
+            introElapsed = introDurationMs;
+            introSince = null;
+            $('depart').classList.remove('hidden');
+          }
+        }
+        tick(introTime / 1000);
+      }
       renderer.render(scene, camera);
     });
   } catch (e) {
@@ -677,7 +723,7 @@ async function startPreview() {
     const { mountEditor } = await import('./editor.js');
     mountEditor(world.items, loaded.layout, world.applyLayout, loaded.panelImage);
   } else {
-    wireHooks();
+    wireHooks(READY_TIME);
     play();
   }
   const resize = () => {
