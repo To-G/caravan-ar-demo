@@ -58,27 +58,69 @@ function sparkles(parent, color, count, size, draw) {
   return { points, update };
 }
 
-function storefront(parent, palette) {
+function sign(parent, title, subtitle, color, x, y, z, width = 0.38) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512; canvas.height = 168;
+  const context = canvas.getContext('2d');
+  context.fillStyle = color;
+  context.fillRect(0, 0, 512, 168);
+  context.strokeStyle = '#f4ce91';
+  context.lineWidth = 5;
+  context.strokeRect(9, 9, 494, 150);
+  context.textAlign = 'center';
+  context.fillStyle = '#fff4d5';
+  context.font = 'bold 68px "Microsoft YaHei", sans-serif';
+  context.fillText(title, 256, 89);
+  context.font = 'bold 20px Georgia, serif';
+  context.fillText(subtitle, 256, 127);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const plaque = mesh(parent, new THREE.PlaneGeometry(width, width * 0.328),
+    new THREE.MeshBasicMaterial({ map: texture }), x, y, z);
+  plaque.rotation.x = Math.PI / 2;
+}
+
+function storefront(parent, palette, style) {
   const walls = material(palette.wall);
   const frame = material(palette.trim);
-  const lit = material(colors.gold, 0.46);
-  box(parent, material(0x55465f), 0.79, 0.69, 0.065, 0, 0.015, 0.035);
-  box(parent, walls, 0.64, 0.47, 0.38, 0, 0.065, 0.255);
-  box(parent, frame, 0.69, 0.51, 0.045, 0, 0.06, 0.43);
-  box(parent, frame, 0.17, 0.024, 0.26, 0, -0.178, 0.21);
-  box(parent, lit, 0.088, 0.01, 0.115, 0, -0.193, 0.259);
+  const linen = material(0xffe8bc);
+  const lit = material(0xf9bc62, 0.46);
+  const base = material(palette.base);
+  box(parent, base, 0.76, 0.63, 0.048, 0, 0.025, 0.024);
+  box(parent, walls, 0.64, 0.47, 0.40, 0, 0.065, 0.245);
+  box(parent, frame, 0.686, 0.512, 0.025, 0, 0.062, 0.43);
+  box(parent, linen, 0.698, 0.525, 0.018, 0, 0.062, 0.453);
+  box(parent, frame, 0.17, 0.024, 0.27, 0, -0.179, 0.184);
+  box(parent, lit, 0.103, 0.01, 0.13, 0, -0.195, 0.233);
+  oval(parent, material(colors.gold, 0.3), 0.06, -0.206, 0.135, 0.011, 0.010, 0.012);
   for (const x of [-0.22, 0.22]) {
-    box(parent, frame, 0.155, 0.022, 0.157, x, -0.181, 0.255);
-    box(parent, lit, 0.112, 0.01, 0.109, x, -0.195, 0.255);
-    box(parent, frame, 0.016, 0.014, 0.112, x, -0.203, 0.255);
-    box(parent, frame, 0.115, 0.014, 0.015, x, -0.203, 0.255);
+    const center = 0.233;
+    box(parent, frame, 0.154, 0.043, 0.163, x, -0.189, center);
+    box(parent, lit, 0.117, 0.01, 0.123, x, -0.215, center);
+    box(parent, frame, 0.012, 0.014, 0.128, x, -0.222, center);
+    box(parent, frame, 0.120, 0.014, 0.012, x, -0.222, center);
+    box(parent, linen, 0.176, 0.062, 0.019, x, -0.195, center - 0.087);
+    if (style === 'flower') {
+      box(parent, base, 0.143, 0.054, 0.036, x, -0.235, center - 0.084);
+      for (let i = 0; i < 5; i++) oval(parent, material(i % 2 ? 0xff9dac : 0xffd48a, 0.08),
+        x + (i - 2) * 0.024, -0.241, center - 0.052, 0.017, 0.015, 0.019);
+    } else {
+      for (let i = 0; i < 4; i++) box(parent, material([0xb36b67, 0x538d8c, 0x5b5c83, 0x998055][i]),
+        0.016, 0.009, 0.031 + i % 2 * 0.017, x - 0.043 + i * 0.023, -0.224, center - 0.043);
+    }
   }
   for (const x of [-0.29, 0.29]) {
-    tube(parent, frame, 0.025, 0.032, 0.31, x, -0.187, 0.245, 12);
-    oval(parent, lit, x, -0.214, 0.36, 0.035, 0.03, 0.039);
+    box(parent, linen, 0.039, 0.046, 0.285, x, -0.187, 0.220);
+    box(parent, frame, 0.059, 0.058, 0.030, x, -0.187, 0.084);
+    oval(parent, lit, x, -0.231, 0.337, 0.018, 0.017, 0.028);
   }
-  box(parent, material(0xbca5b6), 0.25, 0.16, 0.033, 0, -0.275, 0.017);
-  box(parent, material(0xe0c9c4), 0.23, 0.105, 0.039, 0, -0.245, 0.048);
+  for (const side of [-1, 1]) {
+    box(parent, frame, 0.012, 0.18, 0.165, side * 0.325, 0.085, 0.257);
+    box(parent, lit, 0.008, 0.143, 0.123, side * 0.334, 0.085, 0.257);
+    for (const y of [0.04, 0.129]) box(parent, frame, 0.013, 0.012, 0.13, side * 0.34, y, 0.257);
+  }
+  box(parent, base, 0.28, 0.14, 0.026, 0, -0.273, 0.015);
+  box(parent, linen, 0.244, 0.105, 0.024, 0, -0.243, 0.039);
   return lit;
 }
 
@@ -86,17 +128,24 @@ function flowerShop(group) {
   const hinge = new THREE.Group();
   const house = new THREE.Group();
   hinge.position.y = -0.28; house.position.y = 0.28; hinge.add(house); group.add(hinge);
-  const windows = storefront(house, { wall: 0xe7a1b3, trim: 0x80345d });
-  const stripe = material(colors.pink), linen = material(colors.cream);
+  const windows = storefront(house, { wall: 0xe9b7ac, trim: 0x873f59, base: 0xad7b73 }, 'flower');
+  const stripe = material(0xa54c67), linen = material(colors.cream);
+  const roof = tube(house, material(0x794359), 0.39, 0.50, 0.115, 0, 0.055, 0.51, 4);
+  roof.rotation.y = Math.PI / 4;
+  roof.scale.z = 0.75;
+  box(house, material(0xc88085), 0.54, 0.401, 0.017, 0, 0.055, 0.57);
   for (let i = 0; i < 7; i++) {
-    const awning = box(house, i % 2 ? linen : stripe, 0.095, 0.2, 0.023, (i - 3) * 0.095, -0.215, 0.39);
-    awning.rotation.x = 0.31;
+    const x = (i - 3) * 0.095;
+    const awning = box(house, i % 2 ? linen : stripe, 0.095, 0.2, 0.018, x, -0.222, 0.403);
+    awning.rotation.x = 0.24;
+    oval(house, i % 2 ? linen : stripe, x, -0.322, 0.375, 0.048, 0.01, 0.023);
   }
+  sign(house, '花间铺', 'PETAL & BLOOM', '#873f59', 0, -0.245, 0.487, 0.32);
   const blooms = [];
   for (const [x, y, height, color] of [[-0.21, 0.04, 0.20, 0xe76798], [0.04, 0.09, 0.30, 0xffb964], [0.21, 0.03, 0.19, 0xb188ed]]) {
-    tube(house, material(0x5ba87d), 0.014, 0.02, height, x, y, 0.44 + height / 2, 8);
+    tube(house, material(0x5ba87d), 0.014, 0.02, height, x, y, 0.56 + height / 2, 8);
     const bloom = new THREE.Group();
-    bloom.position.set(x, y, 0.43 + height); house.add(bloom); blooms.push(bloom);
+    bloom.position.set(x, y, 0.56 + height); house.add(bloom); blooms.push(bloom);
     const petals = material(color, 0.13);
     for (let i = 0; i < 6; i++) {
       const a = i * tau / 6;
@@ -169,13 +218,14 @@ function paperWing(parent, side) {
 function bookshop(group) {
   const lift = new THREE.Group();
   group.add(lift);
-  box(lift, material(0x5c4a76), 0.82, 0.74, 0.16, 0, 0.03, 0.08);
+  box(lift, material(0x495f57), 0.82, 0.74, 0.16, 0, 0.03, 0.08);
   const house = new THREE.Group();
   house.position.z = 0.16; lift.add(house);
-  const windows = storefront(house, { wall: 0xac9ad5, trim: 0x523b79 });
-  const step = material(0xd1bedc);
+  const windows = storefront(house, { wall: 0x8bb1a2, trim: 0x325856, base: 0x577c72 }, 'book');
+  const step = material(0xd2c6a6);
   for (let i = 0; i < 3; i++) box(lift, step, 0.36 - i * 0.025, 0.15, (i + 1) * 0.05, 0, -0.41 + i * 0.047, (i + 1) * 0.025);
-  const cover = material(0x714e9f), pages = material(colors.cream), print = material(0xb0838d);
+  sign(house, '纸间书店', 'THE PAPER HOUSE', '#325856', 0, -0.211, 0.389, 0.36);
+  const cover = material(0x37695e), pages = material(colors.cream), print = material(0xb0836b);
   const book = new THREE.Group();
   book.position.set(0, 0.04, 0.625); lift.add(book);
   const covers = [];
@@ -262,9 +312,17 @@ export function createMarket(definition) {
   };
 }
 
-export function lightMarket(scene) {
+export function lightMarket(scene, shadows = false) {
   scene.add(new THREE.HemisphereLight(0xfff2e0, 0x7d709e, 1.65));
   const key = new THREE.DirectionalLight(0xffead0, 2.15);
   key.position.set(-2, -2, 4);
+  if (shadows) {
+    key.castShadow = true;
+    key.shadow.mapSize.set(1024, 1024);
+    Object.assign(key.shadow.camera, { left: -3.6, right: 3.6, top: 3.6, bottom: -3.6, near: 0.1, far: 11 });
+    key.shadow.normalBias = 0.018;
+  }
   scene.add(key);
 }
+
+export { box, material, mesh, oval, sign, tube };

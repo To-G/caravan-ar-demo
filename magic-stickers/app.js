@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createMarket, lightMarket, stickers } from './market.js';
+import { buildTown } from './town.js';
 import { openCardCamera, savedCamera, saveCamera, stopStream } from '../camera.js';
 
 const $ = id => document.getElementById(id);
@@ -34,33 +35,33 @@ function createActors(scene) {
 async function showPreview() {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const canvas = renderer.domElement;
   canvas.classList.add('orbit');
   canvas.tabIndex = 0;
   canvas.setAttribute('aria-label', '拖动或用方向键绕看集市');
   stage.appendChild(canvas);
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x161425);
-  scene.fog = new THREE.FogExp2(0x161425, 0.032);
-  lightMarket(scene);
+  scene.background = new THREE.Color(0x24232a);
+  lightMarket(scene, true);
   const camera = new THREE.PerspectiveCamera(39, 1, 0.1, 25);
   camera.up.set(0, 0, 1);
-  const base = new THREE.Mesh(new THREE.BoxGeometry(3.25, 2.15, 0.10), new THREE.MeshStandardMaterial({ color: 0x493753, roughness: 0.78 }));
-  base.position.z = -0.065;
-  scene.add(base);
+  buildTown(scene);
   const actors = createActors(scene);
-  [[-1.02, -0.24, 0.12], [0.05, -0.44, 0], [0.87, 0.38, -0.16]].forEach(([x, y, turn], i) => {
+  [[-1.17, -0.29, 0.15], [0.04, -0.32, 0], [0.99, 0.45, -0.15]].forEach(([x, y, turn], i) => {
     const actor = actors[i];
     actor.group.position.set(x, y, 0);
     actor.group.rotation.z = turn;
-    const texture = new THREE.TextureLoader().load('./assets/' + actor.definition.id + '.svg');
-    texture.colorSpace = THREE.SRGBColorSpace;
-    const sticker = new THREE.Mesh(new THREE.PlaneGeometry(0.97, 0.97), new THREE.MeshBasicMaterial({ map: texture }));
-    sticker.position.z = -0.006;
-    actor.group.add(sticker);
+  });
+  scene.traverse(object => {
+    if (object.isMesh && !object.material.transparent) {
+      object.castShadow = !object.userData.floor && object.material.isMeshStandardMaterial;
+      object.receiveShadow = object.material.isMeshStandardMaterial;
+    }
   });
   $('controls').hidden = false;
-  $('status').textContent = '拖动画面，绕看花店、喷泉和书店';
+  $('status').textContent = '拖动画面，从盒沿看进微缩小镇';
   const replay = () => {
     const now = performance.now();
     actors.forEach(actor => { actor.started = now; });
@@ -68,7 +69,7 @@ async function showPreview() {
   $('replay').onclick = replay;
   replay();
 
-  let yaw = -Math.PI / 2, elevation = 0.63, pointer = null;
+  let yaw = -1.84, elevation = 0.60, pointer = null;
   const turn = (x, y) => {
     yaw -= x * 0.008;
     elevation = Math.max(0.18, Math.min(1.43, elevation + y * 0.008));
@@ -96,10 +97,10 @@ async function showPreview() {
   addEventListener('resize', resize);
   resize();
   renderer.setAnimationLoop(() => {
-    const distance = Math.max(5.7, 5.3 / camera.aspect);
+    const distance = Math.max(7.05, 7.8 / camera.aspect);
     const radius = distance * Math.cos(elevation);
     camera.position.set(Math.cos(yaw) * radius, Math.sin(yaw) * radius, distance * Math.sin(elevation));
-    camera.lookAt(0, 0, 0.30);
+    camera.lookAt(0, 0, 0.21);
     drawActors(actors, performance.now());
     renderer.render(scene, camera);
   });
