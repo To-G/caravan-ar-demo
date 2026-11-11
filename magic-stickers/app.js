@@ -135,7 +135,7 @@ async function startScan() {
     mindar = new StickerMindAR({
       container: stage, imageTargetSrc: './assets/stickers.mind', maxTrack: stickers.length,
       uiLoading: 'no', uiScanning: 'no', uiError: 'no', warmupTolerance: 4, missTolerance: 9,
-      filterMinCF: 0.00075, filterBeta: 0.015,
+      filterMinCF: 0.0025, filterBeta: 0.25,
     });
     const { scene, renderer, camera } = mindar;
     renderer.setPixelRatio(Math.min(devicePixelRatio, 1.4));
@@ -209,3 +209,4 @@ if (params.has('preview')) {
   $('welcome').hidden = false;
   $('start').onclick = startScan;
 }
+

@@ -633,7 +633,7 @@ async function startAR(fromTap = false) {
       uiLoading: 'no', uiScanning: '#scanning', uiError: 'no',
       warmupTolerance: 4, missTolerance: 10,
       // MindAR feeds this filter timestamps in milliseconds.
-      filterMinCF: 0.00075, filterBeta: 0.015,
+      filterMinCF: 0.0025, filterBeta: 0.25,
     });
     const { renderer, scene, camera } = mindar;
     renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
@@ -806,3 +806,4 @@ function showDesk() {
 }
 $('desk-preview').onclick = () => { $('desk').classList.add('hidden'); startPreview(); };
 if (qs.has('preview') || qs.has('edit')) startPreview(); else if (isDesktop && !qs.has('ar')) showDesk(); else startAR();
+

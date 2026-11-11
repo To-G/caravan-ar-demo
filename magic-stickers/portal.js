@@ -47,7 +47,7 @@ function universe(parent) {
   const village = new THREE.Group();
   village.position.set(0, -0.27, -0.78);
   village.scale.setScalar(0.36);
-  village.rotation.x = -0.95;
+  village.rotation.x = -0.60;
   world.add(village);
   buildTown(village);
   const actors = stickers.map((definition, i) => {
@@ -111,7 +111,7 @@ async function run() {
     const {MindARThree}=await import('../lib/mindar-image-three.prod.js');
     const abort=new AbortController();
     const capture=await openCardCamera(navigator.mediaDevices,savedCamera(),abort.signal);
-    const mindar=new MindARThree({container:stage,imageTargetSrc:'../assets/targets.mind',uiLoading:'no',uiScanning:'no',uiError:'no',filterMinCF:0.00075,filterBeta:0.015,environmentDeviceId:capture.current||null});
+    const mindar=new MindARThree({container:stage,imageTargetSrc:'../assets/targets.mind',uiLoading:'no',uiScanning:'no',uiError:'no',filterMinCF:0.0025,filterBeta:0.25,environmentDeviceId:capture.current||null});
     capture.stream.getTracks().forEach(t=>t.stop());
     const oldRenderer = mindar.renderer;
     mindar.renderer = new THREE.WebGLRenderer({antialias:true,alpha:true,stencil:true});
@@ -149,6 +149,7 @@ else{
     document.querySelector('#welcome p').textContent='请允许相机权限，再试一次。';
   });
 }
+
 
 
 
