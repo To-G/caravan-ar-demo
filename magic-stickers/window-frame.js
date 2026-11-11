@@ -71,4 +71,5 @@ export function createWindowFrame(parent) {
       side * 0.419, 0.531, 0.032);
   }
   parent.add(frame);
+  return frame;
 }

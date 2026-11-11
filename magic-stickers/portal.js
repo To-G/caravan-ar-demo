@@ -3,11 +3,14 @@ import { buildTown } from './town.js';
 import { createMarket, lightMarket, stickers } from './market.js';
 import { openCardCamera, savedCamera } from '../camera.js';
 import { createWindowFrame } from './window-frame.js';
+import { card, slots } from './card-layout.js';
+import { createStickerReader } from './read-stickers.js';
 
 const stage = document.getElementById('stage');
 const preview = new URLSearchParams(location.search).has('preview');
+const layout = preview ? [0, 1, 2] : [null, null, null];
 function universe(parent) {
-  const aperture = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({
+  const aperture = new THREE.Mesh(new THREE.PlaneGeometry(1, 1.5), new THREE.MeshBasicMaterial({
     colorWrite: false, depthWrite: false, depthTest: false, side: THREE.DoubleSide,
     stencilWrite: true, stencilRef: 1, stencilFunc: THREE.AlwaysStencilFunc,
     stencilZPass: THREE.ReplaceStencilOp,
@@ -45,16 +48,18 @@ function universe(parent) {
   sky.position.z = -1.4;
   world.add(sky);
   const village = new THREE.Group();
-  village.position.set(0, -0.49, -0.85);
+  village.position.set(0, -0.74, -0.85);
   village.scale.setScalar(0.36);
   village.rotation.x = -Math.PI / 2;
   world.add(village);
-  buildTown(village);
-  const actors = stickers.map((definition, i) => {
+  buildTown(village, { layoutMap: true });
+  const actors = slots.flatMap((slot, i) => {
+    if (layout[i] === null) return [];
+    const definition = stickers[layout[i]];
     const market = createMarket(definition);
-    market.group.position.set(...[[-1.17,-0.29,0],[0.04,-0.32,0],[0.99,0.45,0]][i]);
+    market.group.position.set(slot.townX, slot.townY, 0);
     village.add(market.group);
-    return market;
+    return [market];
   });
   const clouds = [];
   for (let i = 0; i < 5; i++) {
@@ -69,7 +74,7 @@ function universe(parent) {
     world.add(cloud);clouds.push(cloud);
   }
   lightMarket(world);
-  createWindowFrame(parent);
+  createWindowFrame(parent).scale.y = 1.5;
   world.traverse(object => {
     if (!object.material) return;
     const materials = Array.isArray(object.material) ? object.material : [object.material];
@@ -90,11 +95,18 @@ function universe(parent) {
 }
 async function run() {
   let renderer, scene, camera, anchor;
+  let readLayout = null, reading = false, content = null;
+  let update = () => {};
+  function showWorld() {
+    content = new THREE.Group();
+    anchor.add(content);
+    update = universe(content);
+  }
   if (preview) {
     renderer=new THREE.WebGLRenderer({antialias:true,stencil:true});
     scene=new THREE.Scene();scene.background=new THREE.Color(0x292736);
     camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,0.01,20);
-    camera.position.set(0,0,1.96);camera.lookAt(0,0,-0.3);
+    camera.position.set(0,0,2.7);camera.lookAt(0,0,-0.3);
     anchor=new THREE.Group();scene.add(anchor);
     stage.appendChild(renderer.domElement);
     let drag=null;
@@ -111,7 +123,7 @@ async function run() {
     const {MindARThree}=await import('../lib/mindar-image-three.prod.js');
     const abort=new AbortController();
     const capture=await openCardCamera(navigator.mediaDevices,savedCamera(),abort.signal);
-    const mindar=new MindARThree({container:stage,imageTargetSrc:'../assets/targets.mind',uiLoading:'no',uiScanning:'no',uiError:'no',filterMinCF:0.0025,filterBeta:0.25,environmentDeviceId:capture.current||null});
+    const mindar=new MindARThree({container:stage,imageTargetSrc:'./assets/card-stickers.mind',maxTrack:1,uiLoading:'no',uiScanning:'no',uiError:'no',filterMinCF:0.0025,filterBeta:0.25,environmentDeviceId:capture.current||null});
     capture.stream.getTracks().forEach(t=>t.stop());
     const oldRenderer = mindar.renderer;
     mindar.renderer = new THREE.WebGLRenderer({antialias:true,alpha:true,stencil:true});
@@ -119,23 +131,55 @@ async function run() {
     oldRenderer.dispose();
     mindar.renderer.domElement.style.position = "absolute";
     ({renderer,scene,camera}=mindar);
-    anchor=mindar.addAnchor(0).group;
+    const base = mindar.addAnchor(0);
+    const root = new THREE.Group();
+    root.scale.setScalar(1);
+    base.group.add(root);
+    anchor=root;
+    reading=true;
+    let reader;
+    const samples=slots.map(()=>({type:null,count:0}));
+    readLayout=()=>{
+      if(!reading || !reader)return;
+      const values=reader(performance.now());
+      if(values)values.forEach((type,slot)=>{
+        const sample=samples[slot];
+        sample.count=sample.type===type?sample.count+1:1;sample.type=type;
+        if(sample.count>=3)layout[slot]=type;
+      });
+      const summary=layout.map((type,i)=>(i+1)+'号 '+(type===null?'空':stickers[type].label)).join(' · ');
+      document.getElementById('status').textContent=summary;
+      document.getElementById('replay').disabled=!layout.some(type=>type!==null);
+    };
     await mindar.start();
+    reader=await createStickerReader(mindar.video,base,mindar.controller.projectionTransform);
   }
-  const update=universe(anchor);
+  if(preview)showWorld();
+  else {
+    const button=document.getElementById('replay');
+    button.textContent='打开集市';
+    button.disabled=true;
+    button.onclick=()=>{
+      if(reading){
+        reading=false;showWorld();
+        button.textContent='重新读取贴纸';
+        button.onclick=()=>location.reload();
+      }
+    };
+  }
 
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
 
   function resize(){
-    if(preview){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.position.z=Math.max(1.96,1.85/camera.aspect);camera.lookAt(0,0,-0.3);camera.updateProjectionMatrix();}
+    if(preview){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.position.z=Math.max(2.7,1.85/camera.aspect);camera.lookAt(0,0,-0.3);camera.updateProjectionMatrix();}
   }
   addEventListener('resize',resize);resize();
   document.getElementById('welcome').hidden=true;
   document.getElementById('controls').hidden=false;
-  document.getElementById('status').textContent=preview?'拖动视角，透过方形窗口看进集市':'对准方格地图，打开集市窗口';
+  document.getElementById('status').textContent=preview?'纸卡上的固定景物与三个可贴建筑位':'对准整张卡，读取贴纸';
   renderer.setAnimationLoop(()=>{
     anchor.updateWorldMatrix(true,false);
-
+    readLayout?.();
     update(performance.now());renderer.render(scene,camera);
   });
 }
@@ -144,11 +188,13 @@ document.querySelector('nav').innerHTML='<a href="./portal.html?preview">窗口�
 if(preview)run();
 else{
   document.getElementById('welcome').hidden=false;
-  document.querySelector('#welcome p').textContent='对准方格地图，透过卡片窗口看进集市。';
+  document.querySelector('#welcome p').textContent='对准工卡大小的卡片和三个建筑贴纸位。核对读到的内容后，点「打开集市」。空位会保持为空。';
   document.getElementById('start').onclick=()=>run().catch(()=>{
     document.querySelector('#welcome p').textContent='请允许相机权限，再试一次。';
   });
 }
+
+
 
 
 

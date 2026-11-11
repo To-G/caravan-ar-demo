@@ -7,7 +7,7 @@ const clay = material(0xb66f59);
 const soil = material(0x705349);
 const foliage = [material(0x537964), material(0x729279), material(0x8ba480)];
 
-function groundTexture() {
+function groundTexture(layoutMap = false) {
   const canvas = document.createElement('canvas');
   canvas.width = 1024; canvas.height = 720;
   const ctx = canvas.getContext('2d');
@@ -21,20 +21,28 @@ function groundTexture() {
   const backLane = new Path2D();
   backLane.moveTo(w * 0.16, h * 0.47);
   backLane.bezierCurveTo(w * 0.39, h * 0.24, w * 0.57, h * 0.37, w * 0.78, h * 0.39);
+  const street = layoutMap ? new Path2D() : path;
+  const lane = layoutMap ? new Path2D() : backLane;
+  if (layoutMap) {
+    street.moveTo(w * 0.04, h * 0.47);
+    street.bezierCurveTo(w * 0.34, h * 0.45, w * 0.68, h * 0.49, w * 0.96, h * 0.47);
+    lane.moveTo(w * 0.50, h * 0.03);
+    lane.bezierCurveTo(w * 0.52, h * 0.34, w * 0.48, h * 0.68, w * 0.50, h * 0.97);
+  }
   ctx.lineCap = 'round';
   ctx.strokeStyle = '#99836d';
   ctx.lineWidth = 95;
-  ctx.stroke(backLane);
+  ctx.stroke(lane);
   ctx.lineWidth = 182;
-  ctx.stroke(path);
+  ctx.stroke(street);
   ctx.fillStyle = '#ac957b';
-  ctx.beginPath();ctx.ellipse(w * 0.51, h * 0.62, 206, 157, 0, 0, Math.PI * 2);ctx.fill();
+  if (!layoutMap) { ctx.beginPath();ctx.ellipse(w * 0.51, h * 0.62, 206, 157, 0, 0, Math.PI * 2);ctx.fill(); }
 
   ctx.strokeStyle = '#dfc7a1';
-  ctx.lineWidth = 84;ctx.stroke(backLane);
-  ctx.lineWidth = 165;ctx.stroke(path);
+  ctx.lineWidth = 84;ctx.stroke(lane);
+  ctx.lineWidth = 165;ctx.stroke(street);
   ctx.fillStyle = '#ddc39d';
-  ctx.beginPath();ctx.ellipse(w * 0.51, h * 0.62, 195, 146, 0, 0, Math.PI * 2);ctx.fill();
+  if (!layoutMap) { ctx.beginPath();ctx.ellipse(w * 0.51, h * 0.62, 195, 146, 0, 0, Math.PI * 2);ctx.fill(); }
   const surface = ctx.getImageData(0, 0, w, h).data;
   const colors = ['#ceb48f', '#ead2ac', '#d9bc94', '#e3c69e', '#f1d8b2', '#c5a987'];
   for (let y = 15; y < h - 10; y += 25) {
@@ -162,7 +170,7 @@ function marketDetails(town) {
   for(let i=0;i<12;i++)oval(cart,produce[i%3],(i%4-1.5)*0.067,(Math.floor(i/4)-1)*0.055,0.22,0.029,0.025,0.026);
 }
 
-export function buildTown(scene) {
+export function buildTown(scene, { layoutMap = false } = {}) {
   const town = new THREE.Group();
   scene.add(town);
   const outer = material(0x715a49);
@@ -170,7 +178,7 @@ export function buildTown(scene) {
   box(town, outer, width + 0.24, depth + 0.24, 0.21, 0, 0, -0.13);
   box(town, paper, width + 0.26, depth + 0.26, 0.028, 0, 0, -0.239);
   const floor = mesh(town, new THREE.PlaneGeometry(width, depth),
-    new THREE.MeshStandardMaterial({ map: groundTexture(), roughness: 0.94 }), 0, 0, -0.004);
+    new THREE.MeshStandardMaterial({ map: groundTexture(layoutMap), roughness: 0.94 }), 0, 0, -0.004);
   floor.userData.floor = true;
   for (const x of [-width / 2 - 0.035, width / 2 + 0.035]) {
     box(town, paper, 0.09, depth + 0.15, 0.18, x, 0, 0.055);

@@ -1,14 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="360" height="360" viewBox="0 0 360 360">
-  <path fill="#142d49" d="M0 0h360v360H0z"/>
-  <path fill="#a7e5d9" d="M22 24l269-9 54 49-15 248-81 30L26 328z"/>
-  <path fill="#298c97" d="M22 46l107-26-16 57-89 38zm242 213 65-36 4 80-52 33-36-16z"/>
-  <path fill="#f4b868" d="M154 23l67-6-12 39-57 12zm-117 247 69 30-10 31-61-7z"/>
-  <path fill="#236780" stroke="#193b53" stroke-width="7" d="M69 204q4 58 98 80 100 15 135-52l-9-49z"/>
-  <ellipse cx="182" cy="188" rx="114" ry="56" fill="#d6fbeb" stroke="#193b53" stroke-width="8" transform="rotate(-12 182 188)"/>
-  <ellipse cx="184" cy="184" rx="84" ry="35" fill="#4099a9" transform="rotate(-12 184 184)"/>
-  <path fill="#1c677e" d="M163 165q2-45 35-101 38 57 21 94-10 29-31 29-27-3-25-22z"/>
-  <path fill="#edffed" d="M177 159q4-34 21-62-3 46-16 59l-4 13z"/>
-  <path fill="#2b5176" d="M67 98l18-18 22 8-4 31-31 8zm204-27 40 14-5 25-39-15zM140 297l53 10-8 23-49-14z"/>
-  <path fill="none" stroke="#e6fff1" stroke-width="8" stroke-linecap="round" d="M52 140l28-10m217 138 19-16m-80-151 14 20m-113 10 4 16m-24 83 27 7m96-49 25-12"/>
-  <path fill="#ed9c58" d="M240 45l16 8-5 18-17-9zM74 279l17 5-7 17-18-5z"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="360" viewBox="0 0 360 360"><rect width="360" height="360" rx="14" fill="#ece3ca"/><path fill="#d5bc99" d="M0 130h360v100H0zM130 0h100v360H130z"/><g fill="#e7d3b1"><path d="M10 143h45v23H10zm57 0h47v23H67zm179 0h47v23h-47zm59 0h45v23h-45zM10 191h45v25H10zm57 0h47v25H67zm179 0h47v25h-47zm59 0h45v25h-45zM144 10h28v46h-28zm44 0h28v46h-28zm-44 294h28v46h-28zm44 0h28v46h-28z"/></g><circle cx="184" cy="187" r="134" fill="#b2a38d"/><circle cx="180" cy="179" r="131" fill="#617c8d"/><circle cx="180" cy="175" r="119" fill="#d3e9d9"/><circle cx="180" cy="175" r="105" fill="#6bbcc0"/><circle cx="180" cy="175" r="80" fill="#8ed5d2" stroke="#edf3d7" stroke-width="3"/><circle cx="180" cy="175" r="62" fill="#5898aa"/><circle cx="180" cy="175" r="40" fill="#d6eedc"/><circle cx="180" cy="175" r="23" fill="#58c6bd"/><g fill="none" stroke="#e5ffec" stroke-linecap="round" stroke-width="6"><path d="M167 159q-40-49-53-17m73 16q24-67 45-44m-38 64q62-10 48 28m-74-18q-42 49-58 20m66-61q-8-39 4-57"/></g><g fill="#e9fff0"><circle cx="107" cy="149" r="6"/><circle cx="235" cy="116" r="6"/><circle cx="243" cy="211" r="6"/><circle cx="113" cy="213" r="6"/><circle cx="182" cy="86" r="6"/></g><g fill="#74936b"><circle cx="42" cy="305" r="19"/><circle cx="315" cy="45" r="19"/></g></svg>
