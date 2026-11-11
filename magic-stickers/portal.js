@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { buildTown } from './town.js';
 import { createMarket, lightMarket, stickers } from './market.js';
 import { openCardCamera, savedCamera } from '../camera.js';
+import { createWindowFrame } from './window-frame.js';
 
 const stage = document.getElementById('stage');
 const preview = new URLSearchParams(location.search).has('preview');
@@ -68,6 +69,7 @@ function universe(parent) {
     world.add(cloud);clouds.push(cloud);
   }
   lightMarket(world);
+  createWindowFrame(parent);
   world.traverse(object => {
     if (!object.material) return;
     const materials = Array.isArray(object.material) ? object.material : [object.material];
@@ -125,7 +127,7 @@ async function run() {
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
 
   function resize(){
-    if(preview){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
+    if(preview){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.position.z=Math.max(1.96,1.85/camera.aspect);camera.lookAt(0,0,-0.3);camera.updateProjectionMatrix();}
   }
   addEventListener('resize',resize);resize();
   document.getElementById('welcome').hidden=true;
@@ -147,6 +149,7 @@ else{
     document.querySelector('#welcome p').textContent='请允许相机权限，再试一次。';
   });
 }
+
 
 
 
