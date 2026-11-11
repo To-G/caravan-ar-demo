@@ -5,14 +5,6 @@ import { openCardCamera, savedCamera } from '../camera.js';
 
 const stage = document.getElementById('stage');
 const preview = new URLSearchParams(location.search).has('preview');
-const planes = [
-  new THREE.Plane(new THREE.Vector3(1, 0, 0), 0.5),
-  new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0.5),
-  new THREE.Plane(new THREE.Vector3(0, 1, 0), 0.5),
-  new THREE.Plane(new THREE.Vector3(0, -1, 0), 0.5),
-  new THREE.Plane(new THREE.Vector3(0, 0, -1), 0),
-];
-const localPlanes = planes.map(p => p.clone());
 function universe(parent) {
   const aperture = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({
     colorWrite: false, depthWrite: false, depthTest: false, side: THREE.DoubleSide,
@@ -123,9 +115,9 @@ async function run() {
     await mindar.start();
   }
   const update=universe(anchor);
-  renderer.localClippingEnabled=true;
+
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
-  renderer.clippingPlanes=[planes[4]];
+
   function resize(){
     if(preview){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
   }
@@ -135,7 +127,7 @@ async function run() {
   document.getElementById('status').textContent=preview?'拖动视角，透过方形窗口看进集市':'对准方格地图，打开集市窗口';
   renderer.setAnimationLoop(()=>{
     anchor.updateWorldMatrix(true,false);
-    planes.forEach((p,i)=>p.copy(localPlanes[i]).applyMatrix4(anchor.matrixWorld));
+
     update(performance.now());renderer.render(scene,camera);
   });
 }
@@ -149,6 +141,8 @@ else{
     document.querySelector('#welcome p').textContent='请允许相机权限，再试一次。';
   });
 }
+
+
 
 
 
