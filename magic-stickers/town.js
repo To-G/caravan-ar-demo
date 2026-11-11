@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { box, material, mesh, oval, sign, tube } from './market.js';
+import { box, material, mesh, oval, tube } from './market.js';
 
 const width = 4.15, depth = 2.92;
 const cream = material(0xdbc5a3);
@@ -180,7 +180,6 @@ export function buildTown(scene) {
   box(town, cream, width + 0.16, 0.108, 0.021, 0, -depth / 2 - 0.037, 0.12);
   box(town, paper, width + 0.16, 0.095, 0.32, 0, depth / 2 + 0.022, 0.12);
   box(town, cream, width + 0.16, 0.113, 0.026, 0, depth / 2 + 0.022, 0.29);
-  sign(town, '魔法集市', 'THE MINIATURE MARKET', '#5e443c', 0, -depth / 2 - 0.131, -0.056, 0.70);
   house(town, -1.48, 1.03, 0.52, 0.52, 0xd8ad8d, 0x915e53);
   house(town, -0.84, 1.12, 0.51, 0.69, 0xb6b793, 0x5c766a);
   house(town, -0.20, 1.11, 0.54, 0.51, 0xe2c5a0, 0x9a665b);
