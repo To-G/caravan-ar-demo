@@ -20,6 +20,20 @@ function universe(parent) {
     new THREE.MeshBasicMaterial({ color: 0xaad9ee, side: THREE.DoubleSide }));
   sky.position.z = -1.4;
   world.add(sky);
+  const surround = new THREE.MeshBasicMaterial({ color: 0xaad9ee, side: THREE.DoubleSide });
+  for (const x of [-0.495, 0.495]) {
+    const wall = new THREE.Mesh(new THREE.PlaneGeometry(1, 1.4), surround);
+    wall.rotation.y = Math.PI / 2;
+    wall.rotation.z = Math.PI / 2;
+    wall.position.set(x, 0, -0.7);
+    world.add(wall);
+  }
+  for (const y of [-0.495, 0.495]) {
+    const wall = new THREE.Mesh(new THREE.PlaneGeometry(1, 1.4), surround);
+    wall.rotation.x = Math.PI / 2;
+    wall.position.set(0, y, -0.7);
+    world.add(wall);
+  }
   const village = new THREE.Group();
   village.position.set(0, -0.16, -0.68);
   village.scale.setScalar(0.24);
