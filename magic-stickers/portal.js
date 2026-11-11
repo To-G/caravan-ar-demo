@@ -45,7 +45,7 @@ function universe(parent) {
   sky.position.z = -1.4;
   world.add(sky);
   const village = new THREE.Group();
-  village.position.set(0, -0.38, -0.85);
+  village.position.set(0, -0.49, -0.85);
   village.scale.setScalar(0.36);
   village.rotation.x = -Math.PI / 2;
   world.add(village);
@@ -149,6 +149,7 @@ else{
     document.querySelector('#welcome p').textContent='请允许相机权限，再试一次。';
   });
 }
+
 
 
 
