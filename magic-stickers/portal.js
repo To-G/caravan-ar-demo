@@ -47,7 +47,7 @@ function universe(parent) {
   const village = new THREE.Group();
   village.position.set(0, -0.38, -0.85);
   village.scale.setScalar(0.36);
-  village.rotation.x = -1.22;
+  village.rotation.x = -Math.PI / 2;
   world.add(village);
   buildTown(village);
   const actors = stickers.map((definition, i) => {
@@ -94,7 +94,7 @@ async function run() {
     renderer=new THREE.WebGLRenderer({antialias:true,stencil:true});
     scene=new THREE.Scene();scene.background=new THREE.Color(0x292736);
     camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,0.01,20);
-    camera.position.set(0,-0.62,1.65);camera.lookAt(0,0,-0.3);
+    camera.position.set(0,0,1.96);camera.lookAt(0,0,-0.3);
     anchor=new THREE.Group();scene.add(anchor);
     stage.appendChild(renderer.domElement);
     let drag=null;
@@ -149,6 +149,7 @@ else{
     document.querySelector('#welcome p').textContent='请允许相机权限，再试一次。';
   });
 }
+
 
 
 
