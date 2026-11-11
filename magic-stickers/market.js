@@ -5,6 +5,9 @@ const material = (color, glow = 0) => new THREE.MeshStandardMaterial({ color, ro
 const clamp = n => Math.max(0, Math.min(1, n));
 const ease = n => 1 - (1 - clamp(n)) ** 3;
 const tau = Math.PI * 2;
+const BIRD_CYCLE = 10;
+const PETAL_CYCLE = 12;
+const cycleAge = (time, start, period) => time < start ? -1 : (time - start) % period;
 const random = seed => {
   const value = Math.sin(seed * 127.1 + 4.3) * 43758.5453;
   return value - Math.floor(value);
@@ -159,7 +162,7 @@ function flowerShop(group) {
     hinge.rotation.x = -(1 - ease(t / 1.35)) * Math.PI * 0.51;
     blooms.forEach((bloom, i) => bloom.scale.setScalar(Math.max(0.001, ease((t - 0.85 - i * 0.17) / 0.64))));
     drifting.forEach((petal, i) => {
-      const age = t - 1.15 - i * 0.22;
+      const age = cycleAge(t, 1.15 + i * 0.22, PETAL_CYCLE);
       petal.visible = age >= 0 && age < 3.8;
       if (!petal.visible) return;
       const a = i * 2.4 + age * 1.7;
@@ -255,7 +258,7 @@ function bookshop(group) {
     page.visible = t > 1.4;
     page.rotation.y = -flip * Math.PI;
     birds.forEach(({ bird, wings }, i) => {
-      const age = t - 1.95 - i * 0.29;
+      const age = cycleAge(t, 1.95 + i * 0.29, BIRD_CYCLE);
       bird.visible = age > 0 && age < 5.8;
       if (!bird.visible) return;
       const blend = ease(age / 1.62);
