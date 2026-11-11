@@ -45,9 +45,9 @@ function universe(parent) {
   sky.position.z = -1.4;
   world.add(sky);
   const village = new THREE.Group();
-  village.position.set(0, -0.27, -0.78);
+  village.position.set(0, -0.38, -0.85);
   village.scale.setScalar(0.36);
-  village.rotation.x = -0.15;
+  village.rotation.x = -1.22;
   world.add(village);
   buildTown(village);
   const actors = stickers.map((definition, i) => {
@@ -149,6 +149,7 @@ else{
     document.querySelector('#welcome p').textContent='请允许相机权限，再试一次。';
   });
 }
+
 
 
 
