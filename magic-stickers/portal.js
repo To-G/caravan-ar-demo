@@ -19,11 +19,16 @@ function universe(parent) {
   skyCanvas.width = skyCanvas.height = 1024;
   const context = skyCanvas.getContext('2d');
   const gradient = context.createLinearGradient(0, 0, 0, 1024);
-  gradient.addColorStop(0, '#7cbce1');
-  gradient.addColorStop(0.58, '#c5e5ed');
-  gradient.addColorStop(1, '#f7e7ba');
+  gradient.addColorStop(0, '#86bccc');
+  gradient.addColorStop(0.56, '#d5e5df');
+  gradient.addColorStop(1, '#f8dfb1');
   context.fillStyle = gradient;
   context.fillRect(0, 0, 1024, 1024);
+  const sunlight=context.createRadialGradient(773,286,0,773,286,163);
+  sunlight.addColorStop(0,'rgba(255,247,211,.94)');
+  sunlight.addColorStop(0.35,'rgba(255,242,205,.5)');
+  sunlight.addColorStop(1,'rgba(255,242,205,0)');
+  context.fillStyle=sunlight;context.fillRect(0,0,1024,1024);
   for (let i = 0; i < 14; i++) {
     const x = i * 86 - 30, height = 55 + i * 31 % 87;
     context.fillStyle = i % 2 ? '#b4c4bd' : '#adbfba';
@@ -32,9 +37,10 @@ function universe(parent) {
   }
   const skyTexture = new THREE.CanvasTexture(skyCanvas);
   skyTexture.colorSpace = THREE.SRGBColorSpace;
+  skyTexture.repeat.set(3, 3);
+  skyTexture.offset.set(-1, -1);
   const sky = new THREE.Mesh(new THREE.PlaneGeometry(5, 5),
     new THREE.MeshBasicMaterial({ map: skyTexture, side: THREE.DoubleSide }));
-  sky.geometry = new THREE.PlaneGeometry(5, 5);
   sky.position.z = -1.4;
   world.add(sky);
   const village = new THREE.Group();
@@ -50,15 +56,15 @@ function universe(parent) {
     return market;
   });
   const clouds = [];
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 5; i++) {
     const cloud = new THREE.Group();
     for (let j = 0; j < 4; j++) {
-      const puff = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 8), new THREE.MeshBasicMaterial({ color: 0xfaf7e9 }));
-      puff.scale.set(1.2,0.5,0.6);
-      puff.position.set(j*0.11, 0, Math.sin(j)*0.03);
+      const puff = new THREE.Mesh(new THREE.SphereGeometry(0.065, 16, 10), new THREE.MeshBasicMaterial({ color: j%2?0xfff8e6:0xf3efe0 }));
+      puff.scale.set(1.2,0.5+(j%3)*0.2,0.6);
+      puff.position.set(j*0.071, Math.sin(j*2+i)*0.02, Math.sin(j)*0.02);
       cloud.add(puff);
     }
-    cloud.position.set(-1.0+i*0.29,0.52+i%3*0.23,-0.36-i%2*0.19);
+    cloud.position.set(-0.63+i*0.25,0.29+i%3*0.16,-0.84-i%2*0.17);
     world.add(cloud);clouds.push(cloud);
   }
   lightMarket(world);
@@ -77,7 +83,7 @@ function universe(parent) {
   return now => {
     const t=(now-start)/1000;
     actors.forEach(m=>m.update(t));
-    clouds.forEach((c,i)=>{c.position.x=-1.0+i*0.29+Math.sin(t*0.08+i)*0.07;});
+    clouds.forEach((c,i)=>{c.position.x=-0.63+i*0.25+Math.sin(t*0.08+i)*0.07;});
   };
 }
 async function run() {

@@ -115,6 +115,51 @@ function house(group, x, y, w, h, wallColor, roofColor) {
   }
   box(group, frame, 0.104, 0.024, 0.15, x, y - 0.217, 0.079);
   box(group, roof, 0.075, 0.08, 0.19, x - w * 0.24, y + 0.092, h + 0.148);
+  box(group, cream, w + 0.035, 0.04, 0.023, x, y - 0.221, 0.032);
+  box(group, cream, w + 0.028, 0.035, 0.025, x, y - 0.222, h - 0.025);
+  for (const dx of [-w * 0.25, w * 0.25]) {
+    for (const side of [-1, 1]) box(group, roof, 0.026, 0.014, 0.125,
+      x + dx + side * 0.068, y - 0.237, h * 0.69);
+    box(group, cream, 0.145, 0.058, 0.022, x + dx, y - 0.231, h * 0.69 - 0.07);
+  }
+  const ridge = material(0xb69679);
+  for (const side of [-1, 1]) {
+    for (let row = 1; row < 5; row++) {
+      const dx = side * (w / 2 + 0.02) * row / 5;
+      const slat = box(group, ridge, 0.008, 0.456, 0.006, x + dx, y, h + 0.23 * (1 - row / 5) + 0.008);
+      slat.rotation.y = side * 0.62;
+    }
+  }
+}
+
+function marketDetails(town) {
+  const string = material(0x796957);
+  const cloth = [material(0xc87c71), material(0xe9cc8e), material(0x7eada4)];
+  const posts = material(0x725e4d);
+  for (const x of [-0.64, 0.68]) tube(town, posts, 0.014, 0.019, 0.78, x, 0.25, 0.39, 8);
+  const curve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-0.64,0.25,0.78),new THREE.Vector3(0.02,0.25,0.65),new THREE.Vector3(0.68,0.25,0.78),
+  ]);
+  mesh(town, new THREE.TubeGeometry(curve, 24, 0.005, 5, false), string);
+  for (let i=0;i<9;i++) {
+    const point=curve.getPoint((i+0.5)/9);
+    const geometry=new THREE.BufferGeometry();
+    geometry.setAttribute('position',new THREE.Float32BufferAttribute([-0.046,0,0,0.046,0,0,0,0,-0.102],3));
+    geometry.computeVertexNormals();
+    const flag=mesh(town,geometry,cloth[i%3],point.x,point.y,point.z);
+    flag.material.side=THREE.DoubleSide;
+  }
+  const cart=new THREE.Group();cart.position.set(1.55,-0.38,0);cart.rotation.z=-0.25;town.add(cart);
+  const wood=material(0xa47e59),linen=material(0xefddb4);
+  box(cart,wood,0.34,0.20,0.12,0,0,0.13);
+  for(const x of [-0.15,0.15]) {
+    const wheel=mesh(cart,new THREE.TorusGeometry(0.065,0.012,6,14),posts,x,0,0.065);
+    wheel.rotation.y=Math.PI/2;
+    tube(cart,posts,0.009,0.011,0.30,x,0.065,0.32,6);
+  }
+  for(let i=0;i<5;i++)box(cart,i%2?cloth[0]:linen,0.075,0.28,0.015,(i-2)*0.075,0,0.48);
+  const produce=[material(0xd79659),material(0xb35952),material(0x88a064)];
+  for(let i=0;i<12;i++)oval(cart,produce[i%3],(i%4-1.5)*0.067,(Math.floor(i/4)-1)*0.055,0.22,0.029,0.025,0.026);
 }
 
 export function buildTown(scene) {
@@ -153,5 +198,6 @@ export function buildTown(scene) {
     box(town, bench, 0.25, 0.021, 0.056, x, 0.115, 0.113);
     for (const dx of [-0.087, 0.087]) box(town, clay, 0.021, 0.05, 0.065, x + dx, 0.08, 0.034);
   }
+  marketDetails(town);
   return town;
 }
