@@ -14,30 +14,41 @@ const planes = [
 ];
 const localPlanes = planes.map(p => p.clone());
 function universe(parent) {
+  const aperture = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({
+    colorWrite: false, depthWrite: false, depthTest: false, side: THREE.DoubleSide,
+    stencilWrite: true, stencilRef: 1, stencilFunc: THREE.AlwaysStencilFunc,
+    stencilZPass: THREE.ReplaceStencilOp,
+  }));
+  aperture.renderOrder = -100;
+  parent.add(aperture);
   const world = new THREE.Group();
   parent.add(world);
+  const skyCanvas = document.createElement('canvas');
+  skyCanvas.width = skyCanvas.height = 1024;
+  const context = skyCanvas.getContext('2d');
+  const gradient = context.createLinearGradient(0, 0, 0, 1024);
+  gradient.addColorStop(0, '#7cbce1');
+  gradient.addColorStop(0.58, '#c5e5ed');
+  gradient.addColorStop(1, '#f7e7ba');
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, 1024, 1024);
+  for (let i = 0; i < 14; i++) {
+    const x = i * 86 - 30, height = 55 + i * 31 % 87;
+    context.fillStyle = i % 2 ? '#b4c4bd' : '#adbfba';
+    context.fillRect(x, 780 - height, 66, height + 244);
+    context.beginPath();context.moveTo(x - 4,780-height);context.lineTo(x+33,750-height);context.lineTo(x+70,780-height);context.fill();
+  }
+  const skyTexture = new THREE.CanvasTexture(skyCanvas);
+  skyTexture.colorSpace = THREE.SRGBColorSpace;
   const sky = new THREE.Mesh(new THREE.PlaneGeometry(5, 5),
-    new THREE.MeshBasicMaterial({ color: 0xaad9ee, side: THREE.DoubleSide }));
+    new THREE.MeshBasicMaterial({ map: skyTexture, side: THREE.DoubleSide }));
+  sky.geometry = new THREE.PlaneGeometry(5, 5);
   sky.position.z = -1.4;
   world.add(sky);
-  const surround = new THREE.MeshBasicMaterial({ color: 0xaad9ee, side: THREE.DoubleSide });
-  for (const x of [-0.495, 0.495]) {
-    const wall = new THREE.Mesh(new THREE.PlaneGeometry(1, 1.4), surround);
-    wall.rotation.y = Math.PI / 2;
-    wall.rotation.z = Math.PI / 2;
-    wall.position.set(x, 0, -0.7);
-    world.add(wall);
-  }
-  for (const y of [-0.495, 0.495]) {
-    const wall = new THREE.Mesh(new THREE.PlaneGeometry(1, 1.4), surround);
-    wall.rotation.x = Math.PI / 2;
-    wall.position.set(0, y, -0.7);
-    world.add(wall);
-  }
   const village = new THREE.Group();
-  village.position.set(0, -0.16, -0.68);
-  village.scale.setScalar(0.24);
-  village.rotation.x = -0.85;
+  village.position.set(0, -0.27, -0.78);
+  village.scale.setScalar(0.36);
+  village.rotation.x = -0.95;
   world.add(village);
   buildTown(village);
   const actors = stickers.map((definition, i) => {
@@ -59,6 +70,16 @@ function universe(parent) {
     world.add(cloud);clouds.push(cloud);
   }
   lightMarket(world);
+  world.traverse(object => {
+    if (!object.material) return;
+    const materials = Array.isArray(object.material) ? object.material : [object.material];
+    materials.forEach(material => {
+      material.stencilWrite = true;
+      material.stencilRef = 1;
+      material.stencilFunc = THREE.EqualStencilFunc;
+      material.stencilFail = material.stencilZFail = material.stencilZPass = THREE.KeepStencilOp;
+    });
+  });
   let start = performance.now();
   document.getElementById('replay').onclick = () => {start=performance.now();};
   return now => {
@@ -70,7 +91,7 @@ function universe(parent) {
 async function run() {
   let renderer, scene, camera, anchor;
   if (preview) {
-    renderer=new THREE.WebGLRenderer({antialias:true});
+    renderer=new THREE.WebGLRenderer({antialias:true,stencil:true});
     scene=new THREE.Scene();scene.background=new THREE.Color(0x292736);
     camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,0.01,20);
     camera.position.set(0,-0.62,1.65);camera.lookAt(0,0,-0.3);
@@ -90,8 +111,13 @@ async function run() {
     const {MindARThree}=await import('../lib/mindar-image-three.prod.js');
     const abort=new AbortController();
     const capture=await openCardCamera(navigator.mediaDevices,savedCamera(),abort.signal);
-    const mindar=new MindARThree({container:stage,imageTargetSrc:'./assets/stickers.mind',uiLoading:'no',uiScanning:'no',uiError:'no',filterMinCF:0.00075,filterBeta:0.015,environmentDeviceId:capture.current||null});
+    const mindar=new MindARThree({container:stage,imageTargetSrc:'../assets/targets.mind',uiLoading:'no',uiScanning:'no',uiError:'no',filterMinCF:0.00075,filterBeta:0.015,environmentDeviceId:capture.current||null});
     capture.stream.getTracks().forEach(t=>t.stop());
+    const oldRenderer = mindar.renderer;
+    mindar.renderer = new THREE.WebGLRenderer({antialias:true,alpha:true,stencil:true});
+    oldRenderer.domElement.replaceWith(mindar.renderer.domElement);
+    oldRenderer.dispose();
+    mindar.renderer.domElement.style.position = "absolute";
     ({renderer,scene,camera}=mindar);
     anchor=mindar.addAnchor(0).group;
     await mindar.start();
@@ -99,14 +125,14 @@ async function run() {
   const update=universe(anchor);
   renderer.localClippingEnabled=true;
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
-  renderer.clippingPlanes=planes;
+  renderer.clippingPlanes=[planes[4]];
   function resize(){
     if(preview){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
   }
   addEventListener('resize',resize);resize();
   document.getElementById('welcome').hidden=true;
   document.getElementById('controls').hidden=false;
-  document.getElementById('status').textContent=preview?'拖动视角，透过方形窗口看进集市':'对准花店贴纸，打开集市窗口';
+  document.getElementById('status').textContent=preview?'拖动视角，透过方形窗口看进集市':'对准方格地图，打开集市窗口';
   renderer.setAnimationLoop(()=>{
     anchor.updateWorldMatrix(true,false);
     planes.forEach((p,i)=>p.copy(localPlanes[i]).applyMatrix4(anchor.matrixWorld));
@@ -114,13 +140,16 @@ async function run() {
   });
 }
 document.querySelector('h1').textContent='魔法集市 · 窗口';
-document.querySelector('nav').innerHTML='<a href="./portal.html?preview">窗口预览</a><a href="./print.html">打印贴纸</a>';
+document.querySelector('nav').innerHTML='<a href="./portal.html?preview">窗口预览</a><a href="./grid-card.html">打印方格地图</a>';
 if(preview)run();
 else{
   document.getElementById('welcome').hidden=false;
-  document.querySelector('#welcome p').textContent='用现有花店贴纸作窗口。对准图案，从不同角度看进集市。';
+  document.querySelector('#welcome p').textContent='对准方格地图，透过卡片窗口看进集市。';
   document.getElementById('start').onclick=()=>run().catch(()=>{
     document.querySelector('#welcome p').textContent='请允许相机权限，再试一次。';
   });
 }
+
+
+
 

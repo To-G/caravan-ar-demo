@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>魔法集市 · 方格地图卡</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eee5d8;color:#253064;font-family:"Microsoft YaHei",sans-serif}
+main{width:min(100%,190mm);margin:auto;background:#fff4e2;padding:8mm}
+h1{margin:0 0 3mm;font-size:24px}p{margin:3mm 0;line-height:1.6;font-size:14px}
+.map{display:block;width:100%;border-radius:5mm}
+footer{display:flex;gap:5mm;align-items:center;margin-top:5mm}footer img{width:28mm;height:28mm}
+button{padding:8px 16px;margin-bottom:4mm}
+@page{size:A4;margin:10mm}@media print{body{background:white}main{width:100%;padding:0}button{display:none}*{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+</style></head><body><main>
+<button onclick="window.print()">打印地图卡</button><h1>我的魔法集市</h1>
+<p>把道具贴纸贴在方格里，保留地图边缘和部分原图案可见。用手机扫码，再对准地图。</p>
+<img class="map" src="../assets/panel.png" alt="六乘六方格地图，供学生定位贴纸">
+<footer><img src="./assets/window-qr.png" alt="窗口版入口二维码"><div><strong>打开魔法集市窗口</strong><p>纸卡用方格帮助摆放。AR 里呈现街道、广场和天空。</p></div></footer>
+</main></body></html>
