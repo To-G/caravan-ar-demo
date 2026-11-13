@@ -21,7 +21,7 @@ function universe(parent) {
   village.scale.setScalar(.21);
   parent.add(village);
   buildTown(village,{layoutMap:true});
-  village.traverse(object=>{for(const m of (Array.isArray(object.material)?object.material:[object.material]))if(m?.color){const hsl={};m.color.getHSL(hsl);m.color.setHSL(hsl.h,Math.min(1,hsl.s*1.35+.06),Math.min(.78,hsl.l*1.07));}});
+  const colored=new Map();const vivid=original=>{if(!original?.color)return original;if(!colored.has(original)){const m=original.clone(),hsl={};m.color.getHSL(hsl);m.color.setHSL(hsl.h,Math.min(1,hsl.s*1.35+.06),Math.min(.78,hsl.l*1.07));colored.set(original,m);}return colored.get(original);};village.traverse(object=>{if(object.material)object.material=Array.isArray(object.material)?object.material.map(vivid):vivid(object.material);});
   const natureUpdate=createForest(parent);
   const actors=slots.flatMap((slot,i)=>{
     if(layout[i]===null)return [];
@@ -198,7 +198,9 @@ else{
 
 const menu=document.getElementById('settings'),menuButton=document.getElementById('menu-toggle');
 menuButton.onclick=()=>{menu.hidden=!menu.hidden;menuButton.setAttribute('aria-expanded',String(!menu.hidden));};
-document.getElementById('sound-toggle').onclick=async e=>{if(!sound.unlocked){await sound.unlock();e.currentTarget.textContent='声音：开';}else e.currentTarget.textContent=(await sound.toggle())?'声音：开':'声音：关';};
+document.getElementById('sound-toggle').onclick=async e=>{const button=e.currentTarget;button.disabled=true;try{if(!sound.unlocked){await sound.unlock();button.textContent='声音：开';}else button.textContent=(await sound.toggle())?'声音：开':'声音：关';}catch{button.textContent='声音暂不可用';}finally{button.disabled=false;}};
 if(preview)document.getElementById('sound-toggle').textContent='开启声音';
+
+
 
 
