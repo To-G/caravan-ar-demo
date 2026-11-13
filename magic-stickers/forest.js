@@ -1,16 +1,16 @@
 import * as THREE from 'three';
 
 export function createForest(parent) {
-  const environment=new THREE.Group();parent.add(environment);
+  const environment=new THREE.Group();environment.name='forest-environment';parent.add(environment);
   const mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.95});
-  const grass=mat(0x79966a),moss=mat(0xabc389),dark=mat(0x3a6854),leaf=mat(0x608665),bark=mat(0x765845),cream=mat(0xffe7ac);
+  const grass=mat(0x62b75d),moss=mat(0xc3e77b),dark=mat(0x167d61),leaf=mat(0x3fa45f),bark=mat(0x946348),cream=mat(0xffdf69);
   const actors=[],birds=[],clouds=[],butterflies=[];
   const sphere=new THREE.IcosahedronGeometry(1,1),trunk=new THREE.CylinderGeometry(.012,.021,.17,5),cone=new THREE.ConeGeometry(1,1,7);
   function mesh(parent,geometry,material,x,y,z,sx=1,sy=sx,sz=sx){const m=new THREE.Mesh(geometry,material);m.position.set(x,y,z);m.scale.set(sx,sy,sz);parent.add(m);return m;}
   const meadow=new THREE.Group();environment.add(meadow);meadow.position.y=.25;
   const base=mesh(meadow,new THREE.CylinderGeometry(1.05,1.09,.055,48),grass,0,0,-.055,1.25,1,1);base.rotation.x=Math.PI/2;
   for(let i=0;i<12;i++){const a=i*Math.PI/6;mesh(meadow,sphere,i%2?grass:moss,Math.cos(a)*1.03,Math.sin(a)*.83,-.025,.23,.17,.075);}
-  const water=mat(0x69aeb3),sand=mat(0xd9c69c),stone=mat(0x9eaa96);
+  const water=mat(0x3fcad5),sand=mat(0xffd797),stone=mat(0x9eaa96);
   const creek=new THREE.CatmullRomCurve3([new THREE.Vector3(-.92,.85,.015),new THREE.Vector3(-.67,.55,.015),new THREE.Vector3(-.69,.12,.015),new THREE.Vector3(-.85,-.3,.015),new THREE.Vector3(-.65,-.63,.015)]);
   mesh(environment,new THREE.TubeGeometry(creek,36,.053,6,false),water,0,0,0,1,1,.22);
   const path=new THREE.CatmullRomCurve3([new THREE.Vector3(.4,.28,.006),new THREE.Vector3(.67,.35,.006),new THREE.Vector3(.87,.6,.006),new THREE.Vector3(.93,.95,.006)]);
@@ -23,7 +23,7 @@ export function createForest(parent) {
     const a=i*2.4,r=.65+(i%3)*.12;
     mesh(environment,sphere,stone,Math.cos(a)*r,.25+Math.sin(a)*r,.017,.035+(i%3)*.01,.027,.032);
   }
-  const flowerColors=[mat(0xe6b5b7),mat(0xf2d894),mat(0xb6c8e0)];
+  const flowerColors=[mat(0xff70ac),mat(0xffdf47),mat(0x9f8bf3)];
   for(let i=0;i<14;i++){
     const a=i*2.4,r=.6+(i%3)*.12;
     for(let j=0;j<5;j++)mesh(environment,sphere,flowerColors[i%3],Math.cos(a)*r+Math.cos(j*2.4)*.035,.25+Math.sin(a)*r+Math.sin(j*2.4)*.035,.028,.013,.013,.018);
@@ -43,11 +43,11 @@ export function createForest(parent) {
   // A curved skyline at the far edge keeps the real world visible around it.
   const skyCanvas=document.createElement('canvas');skyCanvas.width=512;skyCanvas.height=256;
   const ctx=skyCanvas.getContext('2d'),gradient=ctx.createLinearGradient(0,0,0,256);
-  gradient.addColorStop(0,'rgba(137,201,211,0)');gradient.addColorStop(.35,'rgba(169,216,218,.65)');gradient.addColorStop(1,'rgba(218,231,196,.92)');ctx.fillStyle=gradient;ctx.fillRect(0,0,512,256);
+  gradient.addColorStop(0,'rgba(137,201,211,0)');gradient.addColorStop(.35,'rgba(106,204,240,.55)');gradient.addColorStop(1,'rgba(204,239,217,.78)');ctx.fillStyle=gradient;ctx.fillRect(0,0,512,256);
   const skyMat=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(skyCanvas),transparent:true,depthWrite:false,side:THREE.DoubleSide});
   const sky=mesh(environment,new THREE.PlaneGeometry(2.65,.85),skyMat,0,1.28,.42);sky.rotation.x=Math.PI/2;
   for(let i=0;i<7;i++){
-    const group=new THREE.Group();group.position.set(-1.1+i*.34,.9+Math.sin(i)*.19,.48+(i%3)*.12);environment.add(group);
+    const group=new THREE.Group();group.name='sky-cloud';group.position.set(-1.1+i*.34,.9+Math.sin(i)*.19,.48+(i%3)*.12);environment.add(group);
     for(let j=0;j<4;j++)mesh(group,sphere,new THREE.MeshStandardMaterial({color:0xfff7e4,roughness:1}),j*.06,0,Math.sin(j)*.022,.075,.035,.045);
     clouds.push({group,x:group.position.x});
   }
@@ -57,7 +57,7 @@ export function createForest(parent) {
     const wings=[-1,1].map(side=>{const pivot=new THREE.Group();group.add(pivot);const wing=mesh(pivot,new THREE.PlaneGeometry(.075,.024),birdMat,side*.036,0,0);wing.rotation.z=side*.25;return {pivot,side};});
     birds.push({group,wings,i});
   }
-  const wingMats=[mat(0xf3b675),mat(0xe8bbd0),mat(0xeedb91)];
+  const wingMats=[mat(0xff9c43),mat(0xff72be),mat(0xffe95c)];
   for(let i=0;i<7;i++){
     const group=new THREE.Group();environment.add(group);
     const wings=[-1,1].map(side=>{const pivot=new THREE.Group();group.add(pivot);mesh(pivot,sphere,wingMats[i%3],side*.018,0,0,.022,.014,.003);return {pivot,side};});

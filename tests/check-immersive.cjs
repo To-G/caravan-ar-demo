@@ -1,7 +1,7 @@
 const fs=require('fs'),http=require('http');
 const {chromium}=require('C:/Users/Administrator/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 (async()=>{
- const html=fs.readFileSync('output/魔法集市-森林展开版/index.html','utf8').replace('anchor.updateWorldMatrix(true,false);update(now);','window.__arVisible=anchor.visible;anchor.updateWorldMatrix(true,false);update(now);').replace('const next=!selfie;switching=true;','base.visible=true;base.group.visible=true;const next=!selfie;switching=true;');let simulate=false;
+ const html=fs.readFileSync('output/魔法集市-森林展开版/index.html','utf8').replace('anchor.updateWorldMatrix(true,false);if(content)update(now);','window.__arVisible=anchor.visible;anchor.updateWorldMatrix(true,false);if(content)update(now);').replace('natureUpdate(t);','natureUpdate(t);window.__animation={time:t,scale:parent.scale.x,cloud:parent.getObjectByName(\'sky-cloud\')?.position.x};').replace('const next=!selfie;switching=true;','base.visible=true;base.group.visible=true;const next=!selfie;switching=true;');let simulate=false;
  const server=http.createServer((req,res)=>{res.setHeader('Content-Type','text/html');res.end(simulate?html.replace('if(!base.visible){readSince=0;','if(false){readSince=0;').replace('base.visible?reader(now):null','[0,1,2]'):html)});
  await new Promise(r=>server.listen(0,'127.0.0.1',r));
  const browser=await chromium.launch({executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream']});
@@ -9,7 +9,7 @@ const {chromium}=require('C:/Users/Administrator/.cache/codex-runtimes/codex-pri
   const page=await browser.newPage({viewport:{width:430,height:900}});const errors=[],external=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('dialog',async d=>{errors.push(d.message());await d.dismiss()});page.on('request',r=>{if(/^https?:/.test(r.url())&&!r.url().includes('127.0.0.1'))external.push(r.url())});
   const url=`http://127.0.0.1:${server.address().port}/`;
-  await page.goto(url+'?preview');await page.waitForTimeout(3000);await page.screenshot({path:'output/魔法集市-森林展开版/预览核对.png'});
+  await page.goto(url+'?preview');await page.waitForFunction(()=>window.__animation?.time>.02);const entrance=await page.evaluate(()=>window.__animation);await page.waitForTimeout(1700);const settled=await page.evaluate(()=>window.__animation);await page.waitForTimeout(400);const moved=await page.evaluate(()=>window.__animation);console.log(JSON.stringify({entrance,settled,moved}));if(entrance.scale>=.99||settled.scale<.99||moved.cloud===settled.cloud)throw Error('Entrance or scenery animation not running');await page.screenshot({path:'output/魔法集市-森林展开版/预览核对.png'});
   const smoothing=await page.evaluate(async()=>{const THREE=await import('three');const {createPoseFilter}=await import('ar/magic-stickers/pose-filter.js');const input=new THREE.Group(),out=new THREE.Group();const filter=createPoseFilter(out);const raw=[],smooth=[];for(let i=0;i<80;i++){const x=i%2?.01:-.01;input.matrix.makeTranslation(x,0,0);filter(input,i*33);if(i>20){raw.push(x);smooth.push(out.matrix.elements[12])}}const sd=a=>{const mean=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((x,y)=>x+(y-mean)**2,0)/a.length)};for(let i=80;i<87;i++){input.matrix.makeTranslation(.2,0,0);filter(input,i*33)}return {jitterRatio:sd(smooth)/sd(raw),moveAfter200ms:out.matrix.elements[12]}});
   await page.goto(url);await page.locator('#start').click();await page.locator('#take-photo').waitFor({state:'visible'});
   await page.locator('#take-photo').click();await page.waitForFunction(()=>document.querySelector('dialog')?.open&&document.querySelector('dialog img').naturalWidth>0);await page.locator('#close-photo').click();
@@ -23,6 +23,7 @@ const {chromium}=require('C:/Users/Administrator/.cache/codex-runtimes/codex-pri
   await page.locator('#switch-camera').click();await page.waitForFunction(()=>document.querySelector('#switch-camera').getAttribute('aria-label')==='切换到后置摄像头');await page.waitForTimeout(400);if(await page.evaluate(()=>window.__arVisible))throw Error('Old camera pose remained visible');console.log('Camera switch clears stale pose: passed');await page.locator('#menu-toggle').click();await page.locator('#replay').click();await page.waitForFunction(()=>!document.querySelector('#replay').hidden);console.log(JSON.stringify({frontAutoOpen:await page.locator('#status').textContent(),mirrored:await page.locator('#stage canvas').evaluate(c=>c.dataset.mirrored),errors}));if(errors.length||external.length||smoothing.jitterRatio>.6||smoothing.moveAfter200ms<.16)throw Error('Validation failed');
  }finally{await browser.close();server.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});
+
 
 
 

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 // Read stickers from the original pose; smooth only the displayed scene.
-export function createPoseFilter(output) {
+export function createPoseFilter(output,{positionRestMs=110,rotationRestMs=110,movingMs=38}={}) {
   const position=new THREE.Vector3(),rotation=new THREE.Quaternion(),scale=new THREE.Vector3();
   const nextPosition=new THREE.Vector3(),nextRotation=new THREE.Quaternion(),nextScale=new THREE.Vector3();
   let initialized=false,last=0,lastSeen=0,rejected=0;
@@ -19,10 +19,12 @@ export function createPoseFilter(output) {
     else {
       const dt=Math.min(Math.max(now-last,1),100);
       const moving=distance>.025||angle>.035;
-      const alpha=1-Math.exp(-dt/(moving?38:110));
+      const alpha=1-Math.exp(-dt/(moving?movingMs:positionRestMs));
+      const rotationAlpha=1-Math.exp(-dt/(angle>.035?movingMs:rotationRestMs));
+      const scaleAlpha=1-Math.exp(-dt/(scale.distanceTo(nextScale)/unit>.04?70:180));
       if(distance>.0007)position.lerp(nextPosition,alpha);
-      if(angle>.0015)rotation.slerp(nextRotation,alpha);
-      scale.lerp(nextScale,alpha);
+      if(angle>.0015)rotation.slerp(nextRotation,rotationAlpha);
+      scale.lerp(nextScale,scaleAlpha);
     }
     output.matrix.compose(position,rotation,scale);output.visible=true;last=now;lastSeen=now;
   };

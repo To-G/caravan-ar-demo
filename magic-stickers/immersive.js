@@ -21,6 +21,7 @@ function universe(parent) {
   village.scale.setScalar(.21);
   parent.add(village);
   buildTown(village,{layoutMap:true});
+  village.traverse(object=>{for(const m of (Array.isArray(object.material)?object.material:[object.material]))if(m?.color){const hsl={};m.color.getHSL(hsl);m.color.setHSL(hsl.h,Math.min(1,hsl.s*1.35+.06),Math.min(.78,hsl.l*1.07));}});
   const natureUpdate=createForest(parent);
   const actors=slots.flatMap((slot,i)=>{
     if(layout[i]===null)return [];
@@ -31,8 +32,32 @@ function universe(parent) {
     return [actor];
   });
   lightMarket(parent);
-  const start=performance.now();
-  return now=>actors.forEach(actor=>actor.update((now-start)/1000));
+  let elapsed=0,lastTick=null;
+  sound.begin();
+  const fades=new Map();
+  parent.traverse(object=>{
+    for(const material of (Array.isArray(object.material)?object.material:[object.material])){
+      if(!material||fades.has(material))continue;
+      fades.set(material,{opacity:material.opacity,transparent:material.transparent,depthWrite:material.depthWrite});
+      material.transparent=true;material.opacity=0;material.depthWrite=false;
+    }
+  });
+  parent.scale.setScalar(.001);
+  let revealed=false;
+  return now=>{
+    if(lastTick!==null)elapsed+=Math.min(66,Math.max(0,now-lastTick));lastTick=now;
+    const t=elapsed/1000,p=Math.min(1,t/1.1),ease=1-Math.pow(1-p,3);
+    parent.scale.setScalar(Math.max(.001,ease));
+    if(!revealed){
+      fades.forEach((original,material)=>{material.opacity=original.opacity*ease;if(p===1){material.transparent=original.transparent;material.depthWrite=original.depthWrite;material.needsUpdate=true;}});
+      revealed=p===1;
+    }
+    const villageProgress=Math.max(0,Math.min(1,(t-.15)/1.25)),v=1-Math.pow(1-villageProgress,3);
+    village.scale.setScalar(Math.max(.001,.21*v));village.rotation.x=-(1-v)*.65;village.position.z=.008-(1-v)*.06;
+    actors.forEach(actor=>actor.update(Math.max(0,t-.35)));
+    natureUpdate(t);
+    sound.update(t,parent.parent.visible,layout.includes(1));
+  };
 }
 async function run() {
   let renderer,scene,camera,anchor,mindar,base,reader,filter;
@@ -61,14 +86,14 @@ async function run() {
     const {MindARThree}=await import('../lib/mindar-image-three.prod.js');
     const capture=await openPreferredRear(navigator.mediaDevices);
 
-    mindar=new MindARThree({container:stage,imageTargetSrc:'./assets/card-stickers.mind',maxTrack:1,uiLoading:'no',uiScanning:'no',uiError:'no',filterMinCF:.002,filterBeta:.12,warmupTolerance:3,missTolerance:4,environmentDeviceId:capture.current||null});
+    mindar=new MindARThree({container:stage,imageTargetSrc:'./assets/card-stickers.mind',maxTrack:1,uiLoading:'no',uiScanning:'no',uiError:'no',filterMinCF:.0025,filterBeta:.25,warmupTolerance:1,missTolerance:4,environmentDeviceId:capture.current||null});
     installCameraAdapter(mindar,capture.stream);
     const cameraPanel=document.body.lastElementChild;cameraPanel.classList.add('camera-settings');cameraPanel.removeAttribute('style');document.getElementById('settings').append(cameraPanel);
     const old=mindar.renderer;
     mindar.renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,stencil:true});
     old.domElement.replaceWith(mindar.renderer.domElement);old.dispose();
     ({renderer,scene,camera}=mindar);base=mindar.addAnchor(0);
-    anchor=new THREE.Group();scene.add(anchor);anchor.visible=false;filter=createPoseFilter(anchor);
+    anchor=new THREE.Group();scene.add(anchor);anchor.visible=false;filter=createPoseFilter(anchor,{positionRestMs:135,rotationRestMs:165,movingMs:32});
     await mindar.start();reader=await createStickerReader(mindar.video,base,mindar.controller.projectionTransform);
 
     const lensPanel=document.createElement('details');const lensSummary=document.createElement('summary');lensSummary.textContent='镜头设置';lensPanel.append(lensSummary);
@@ -93,7 +118,7 @@ async function run() {
         lensInfo.textContent='所选镜头启动失败：'+error.message;
         mindar.video?.srcObject?.getTracks().forEach(t=>t.stop());mindar.video?.remove();
         try{mindar.environmentDeviceId=previous;mindar.shouldFaceUser=false;selfie=false;await mindar.start();reader=await createStickerReader(mindar.video,base,mindar.controller.projectionTransform);describeLens();}catch{lensInfo.textContent='相机恢复失败，请重新打开页面';}
-      }finally{filter=createPoseFilter(anchor);readSince=0;samples.forEach(s=>s.count=0);switching=false;select.disabled=false;}
+      }finally{filter=createPoseFilter(anchor,{positionRestMs:135,rotationRestMs:165,movingMs:32});readSince=0;samples.forEach(s=>s.count=0);switching=false;select.disabled=false;}
     };
 
     setupPhoto({renderer,audioStream:()=>sound.stream,render:()=>renderer.render(scene,camera),video:()=>mindar.video,ready:()=>!switching,switchCamera:async()=>{
@@ -103,7 +128,7 @@ async function run() {
       mindar.controller.onUpdate=()=>{};
       mindar.stop();
       base.visible=false;base.group.visible=false;
-      anchor.visible=false;filter=createPoseFilter(anchor);
+      anchor.visible=false;filter=createPoseFilter(anchor,{positionRestMs:135,rotationRestMs:165,movingMs:32});
       renderer.clear();
       async function startFacing(front){
         mindar.shouldFaceUser=front;await mindar.start();
@@ -118,20 +143,21 @@ async function run() {
         mindar.video?.srcObject?.getTracks().forEach(t=>t.stop());mindar.video?.remove();
         try{await startFacing(selfie);}catch{status.textContent='相机暂不可用，请重新打开页面并允许相机权限';}
         throw new Error('无法切换镜头，请检查设备和相机权限。');
-      }finally{anchor.visible=false;filter=createPoseFilter(anchor);switching=false;readSince=0;samples.forEach(s=>s.count=0);}
-      anchor.matrixAutoUpdate=false;anchor.visible=false;filter=createPoseFilter(anchor);
+      }finally{anchor.visible=false;filter=createPoseFilter(anchor,{positionRestMs:135,rotationRestMs:165,movingMs:32});switching=false;readSince=0;samples.forEach(s=>s.count=0);}
+      anchor.matrixAutoUpdate=false;anchor.visible=false;filter=createPoseFilter(anchor,{positionRestMs:135,rotationRestMs:165,movingMs:32});
       status.textContent=(selfie?'前置':'后置')+'相机 · 对准卡片，识别后自动显示';
       return selfie;
     }});
     currentCamera=()=>camera;
   }
-  renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+  renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));
   function resize(){if(preview){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.position.z=Math.max(3.1,4.0/camera.aspect);camera.lookAt(0,.2,0);camera.updateProjectionMatrix();}}
   addEventListener('resize',resize);resize();
   document.getElementById('welcome').hidden=true;document.getElementById('controls').hidden=false;
   replay.hidden=true;status.textContent=preview?'拖动画面，环顾小镇':'对准整张卡片，识别后自动打开';
+  let lastRender=-Infinity;
   renderer.setAnimationLoop(()=>{
-    const now=performance.now();
+    const now=performance.now();if(now-lastRender<1000/30)return;lastRender=now;
     if(!preview&&!switching){
       filter(base.group,now);
       if(!content){
@@ -139,9 +165,9 @@ async function run() {
         const values=base.visible?reader(now):null;
         if(values){
           if(!readSince)readSince=now;
-          values.forEach((type,i)=>{const s=samples[i];if(type===undefined){s.count=0;return;}s.count=s.type===type?s.count+1:1;s.type=type;s.required=values.confidence?.[i]==='high'?3:5;if(s.count>=s.required)layout[i]=type;});
-          status.textContent='正在确认贴纸，请保持卡片完整入镜…';
-          if(now-readSince>=220&&samples.every(s=>s.count>=(s.required||5))){
+          values.forEach((type,i)=>{const s=samples[i];if(type===undefined){s.count=0;return;}s.count=s.type===type?s.count+1:1;s.type=type;s.required=values.confidence?.[i]==='high'?2:3;if(s.count>=s.required)layout[i]=type;});
+          status.textContent='已找到卡片，正在辨认建筑…';
+          if(now-readSince>=110&&samples.every(s=>s.count>=(s.required||3))){
             showWorld();status.textContent=layout.map((t,i)=>`${i+1}号 ${t===null?'空':stickers[t].label}`).join(' · ');
           }
         }
