@@ -1,0 +1,23 @@
+@import url('./market.css');
+:root{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#142b2a;color:#fff7e7}
+header{top:max(18px,env(safe-area-inset-top));left:18px;right:18px;align-items:center}
+.brand{padding:10px 15px;background:#122b2bcc;border:1px solid #ffffff2a;border-radius:30px;font-size:14px;letter-spacing:2px;backdrop-filter:blur(15px)}
+#menu-toggle{pointer-events:auto;border:1px solid #ffffff30;background:#122b2bcc;color:#fff7e7;border-radius:50%;width:42px;height:42px;font-size:19px}
+#settings{position:fixed;top:76px;right:16px;width:min(310px,calc(100vw - 32px));z-index:8;display:flex;flex-direction:column;align-items:stretch;gap:10px;background:#153331f5;border:1px solid #ffffff26;border-radius:20px;padding:16px;backdrop-filter:blur(18px);max-height:65dvh;overflow:auto}
+#settings button,#settings a{background:#ffffff0d;color:#f6eddb;text-decoration:none;padding:12px;border:1px solid #ffffff18;border-radius:12px;font-size:13px;text-align:left}
+.camera-settings{font-size:11px;color:#c4d6c7;border-top:1px solid #ffffff20;padding-top:10px;line-height:1.6}
+.camera-settings select{background:#24463e;color:#fff;border:1px solid #ffffff25;border-radius:8px;max-width:100%;font-size:12px}
+.panel{border:1px solid #d9c79d40;background:linear-gradient(145deg,#193a37f5,#102925f5);box-shadow:0 25px 100px #0007;border-radius:30px;padding:30px;gap:18px;width:min(88vw,410px)}
+.welcome-mark{font-size:50px;color:#e0c990;text-align:center;line-height:1}
+.panel .eyebrow{text-align:center;font-size:11px;letter-spacing:1px;color:#b8cbb9}
+.panel h1{font-size:26px;text-align:center;letter-spacing:1px;line-height:1.4}
+.panel p{font-size:14px;color:#cad9ca;line-height:1.9}
+.panel button{background:#e0c990;color:#263a30;border-radius:18px;padding:16px}
+.panel a{text-align:center;font-size:13px;color:#ded4b7}.panel small{text-align:center;font-size:10px;color:#8ca798}
+footer{justify-content:center;bottom:120px!important;pointer-events:none}
+footer p{font-size:12px!important;letter-spacing:.5px;background:#163532cf;color:#e1eadb;max-width:90%!important;text-align:center;padding:10px 18px;border-radius:30px;border:1px solid #ffffff15}
+.photo-tools button{box-shadow:0 2px 16px #0003}
+#take-photo{border-color:#f6eed9;background:#15363255}#take-photo span{background:#f6eed9}
+#switch-camera{background:#163532b8;border:1px solid #f6eed969;right:22px}
+.photo-dialog{background:#153331;color:#f6eed9;border-color:#ffffff28}
+@media(max-width:560px){header{left:14px;right:14px}.panel h1{font-size:25px}}

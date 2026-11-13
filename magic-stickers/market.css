@@ -24,4 +24,26 @@ footer button{pointer-events:auto}
 #camera-picker{position:fixed;top:108px;left:22px;z-index:2;padding:6px 9px;border-radius:9px;background:#211a30;color:#ffdfae;font-size:12px}
 #camera-choice{max-width:160px;margin-left:4px;font:inherit}
 body.ar{background:transparent}
+.photo-tools{position:fixed;z-index:4;bottom:max(82px,calc(env(safe-area-inset-bottom) + 68px));left:50%;transform:translateX(-50%);display:flex;gap:12px;white-space:nowrap}
+.photo-tools button,.photo-dialog button{border:1px solid #bc9a65;border-radius:24px;padding:12px 20px;color:#30273b;background:#ffe0a0;font:inherit}
+button:disabled{opacity:.5;cursor:wait}
+.selfie-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);z-index:-2}
+.photo-dialog{width:min(94vw,480px);max-height:94dvh;padding:18px;border:1px solid #bc9a65;border-radius:20px;background:#211a30;color:#fff4de}
+.photo-dialog::backdrop{background:#000b}
+.photo-dialog img{display:block;max-width:100%;max-height:65dvh;margin:12px auto;object-fit:contain}
+.photo-dialog p{font-size:12px;margin:10px 0}.photo-dialog div{display:flex;gap:8px;justify-content:center}
 @media(max-width:560px){header{left:10px;right:10px;gap:5px}nav{gap:4px}nav a{padding:7px 8px;font-size:12px}footer{left:10px;right:10px}#camera-picker{left:10px;top:86px}}
+/* Camera controls stay available with or without a tracked card. */
+.photo-tools{inset:auto 0 max(20px,env(safe-area-inset-bottom));height:76px;left:0;transform:none;display:block;pointer-events:none}
+.photo-tools button{position:absolute;pointer-events:auto;display:grid;place-items:center;padding:0;color:white;box-shadow:0 2px 12px #0005}
+#take-photo{left:50%;transform:translateX(-50%);width:72px;height:72px;border:4px solid #fff;background:#ffffff35;border-radius:50%}
+#take-photo span{width:54px;height:54px;background:white;border-radius:50%;transition:transform .15s}
+#take-photo:active span{transform:scale(.88)}
+#switch-camera{right:24px;top:12px;width:50px;height:50px;border:1px solid #ffffff80;background:#211a308c;border-radius:50%}
+#switch-camera svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}
+body:has(.photo-tools) footer{bottom:max(110px,calc(env(safe-area-inset-bottom) + 100px))}
+body:has(.photo-tools) footer p{max-width:75%;font-size:12px}
+.record-clock{position:absolute;left:50%;bottom:88px;transform:translateX(-50%);background:#211a30dd;color:#fff;padding:8px 14px;border-radius:20px;white-space:nowrap}
+#take-photo.recording span{border-radius:10px;background:#ff5353;width:34px;height:34px}
+.photo-dialog video{display:block;max-width:100%;max-height:65dvh;margin:12px auto}
+#take-photo{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}

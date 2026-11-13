@@ -1,0 +1,6 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#142b2a"><title>魔法集市 · 森林展开</title><link rel="stylesheet" href="./immersive.css"><script type="importmap">{"imports":{"three":"../lib/three.module.js","three/addons/":"../lib/addons/"}}</script></head><body>
+<main><div id="stage"></div><header><span class="brand">✦ 魔法集市</span><button id="menu-toggle" aria-label="打开设置" aria-expanded="false">☰</button></header>
+<nav id="settings" hidden><button id="sound-toggle">声音：开</button><a href="./?preview">浏览小镇</a><a href="./print.html">打印卡片</a><button id="replay" hidden>重新识别</button></nav>
+<section id="welcome" class="panel" hidden><span class="welcome-mark">✦</span><span class="eyebrow">一张卡片，一座会呼吸的小镇</span><h1>让集市在眼前生长</h1><p>对准卡片，森林与小镇会缓缓展开。短按拍照，长按记录一段魔法。</p><button id="start">打开相机，进入集市</button><a href="./?preview">先看看小镇</a><small>首次使用需要允许相机权限</small></section>
+<label id="camera-picker" hidden>镜头<select id="camera-choice"></select></label><footer id="controls" hidden><p id="status" role="status"></p></footer></main>
+<script type="module" src="./immersive.js"></script></body></html>
