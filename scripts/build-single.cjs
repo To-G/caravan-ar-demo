@@ -8,7 +8,7 @@ const entry=immersive?'immersive':'portal';
 const target = path.resolve(root, storybook?'../output/魔法集市-绘本精致版':immersive?'../output/魔法集市-森林展开版':'../output/窗口贴纸版-单HTML');
 fs.mkdirSync(target, { recursive: true });
 const files = ['lib/three.module.js','lib/addons/renderers/CSS3DRenderer.js','lib/ui-fBadYuor.js','lib/controller-mGt1s8dJ.js','lib/mindar-image-three.prod.js','camera.js', ...['portal','town','market','window-frame','card-layout','read-stickers','photo','pose-filter','camera-adapter'].map(n => `magic-stickers/${n}.js`)];
-if(immersive){files.splice(files.indexOf('magic-stickers/portal.js'),1);files.push(...['immersive','forest','soundscape','storybook'].map(n=>`magic-stickers/${n}.js`));}
+if(immersive){files.splice(files.indexOf('magic-stickers/portal.js'),1);files.push(...['immersive','forest','soundscape','storybook','tracking-stabilizer'].map(n=>`magic-stickers/${n}.js`));}
 const key = f => 'ar/' + f;
 const asset = (name, mime) => `data:${mime};base64,` + fs.readFileSync(path.join(root,'magic-stickers/assets',name)).toString('base64');
 const modules = {};

@@ -7,7 +7,7 @@ import { createMarket, lightMarket, stickers } from './market.js';
 import { card, slots } from './card-layout.js';
 import { createStickerReader } from './read-stickers.js';
 import { setupPhoto } from './photo.js';
-import { createPoseFilter } from './pose-filter.js';
+import { createTrackingStabilizer as createPoseFilter } from './tracking-stabilizer.js';
 
 const sound=createSoundscape();
 const stage = document.getElementById('stage');
@@ -156,11 +156,13 @@ async function run() {
   addEventListener('resize',resize);resize();
   document.getElementById('welcome').hidden=true;document.getElementById('controls').hidden=false;
   replay.hidden=true;status.textContent=preview?'拖动画面，环顾小镇':'对准整张卡片，识别后自动打开';
+  let poseSample=0,poseMeasuredAt=-Infinity;
+  if(base)base.onTargetUpdate=()=>{if(mindar.controller.trackingStates?.[0]?.isTracking){poseSample++;poseMeasuredAt=performance.now();}};
   let lastRender=-Infinity;
   renderer.setAnimationLoop(()=>{
     const now=performance.now();lastRender=now;
     if(!preview&&!switching){
-      filter({matrix:base.group.matrix,visible:base.group.visible&&mindar.controller.trackingStates?.[0]?.isTracking!==false},now);
+      filter({matrix:base.group.matrix,visible:base.group.visible&&mindar.controller.trackingStates?.[0]?.isTracking!==false,sampleId:poseSample,measuredAt:poseMeasuredAt},now);
       if(!layoutResolved){
         if(base.visible){if(!content)showWorld();replay.hidden=false;}
         if(!base.visible){readSince=0;samples.forEach(s=>s.count=0);}
