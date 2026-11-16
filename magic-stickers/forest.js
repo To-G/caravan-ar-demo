@@ -1,11 +1,12 @@
+import { batchStatic } from './storybook.js';
 import * as THREE from 'three';
 
 export function createForest(parent) {
-  const environment=new THREE.Group();environment.name='forest-environment';parent.add(environment);
+  const environment=new THREE.Group();environment.name='forest-environment';environment.scale.setScalar(.66);environment.position.y=.085;parent.add(environment);
   const mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.95});
   const grass=mat(0x62b75d),moss=mat(0xc3e77b),dark=mat(0x167d61),leaf=mat(0x3fa45f),bark=mat(0x946348),cream=mat(0xffdf69);
   const actors=[],birds=[],clouds=[],butterflies=[];
-  const sphere=new THREE.IcosahedronGeometry(1,1),trunk=new THREE.CylinderGeometry(.012,.021,.17,5),cone=new THREE.ConeGeometry(1,1,7);
+  const sphere=new THREE.SphereGeometry(1,12,8),trunk=new THREE.CylinderGeometry(.012,.021,.17,5),cone=new THREE.ConeGeometry(1,1,12);
   function mesh(parent,geometry,material,x,y,z,sx=1,sy=sx,sz=sx){const m=new THREE.Mesh(geometry,material);m.position.set(x,y,z);m.scale.set(sx,sy,sz);parent.add(m);return m;}
   const meadow=new THREE.Group();environment.add(meadow);meadow.position.y=.25;
   const base=mesh(meadow,new THREE.CylinderGeometry(1.05,1.09,.055,48),grass,0,0,-.055,1.25,1,1);base.rotation.x=Math.PI/2;
@@ -45,7 +46,7 @@ export function createForest(parent) {
   const ctx=skyCanvas.getContext('2d'),gradient=ctx.createLinearGradient(0,0,0,256);
   gradient.addColorStop(0,'rgba(137,201,211,0)');gradient.addColorStop(.35,'rgba(106,204,240,.55)');gradient.addColorStop(1,'rgba(204,239,217,.78)');ctx.fillStyle=gradient;ctx.fillRect(0,0,512,256);
   const skyMat=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(skyCanvas),transparent:true,depthWrite:false,side:THREE.DoubleSide});
-  const sky=mesh(environment,new THREE.PlaneGeometry(2.65,.85),skyMat,0,1.28,.42);sky.rotation.x=Math.PI/2;
+  const sky=new THREE.Group();environment.add(sky);
   for(let i=0;i<7;i++){
     const group=new THREE.Group();group.name='sky-cloud';group.position.set(-1.1+i*.34,.9+Math.sin(i)*.19,.48+(i%3)*.12);environment.add(group);
     for(let j=0;j<4;j++)mesh(group,sphere,new THREE.MeshStandardMaterial({color:0xfff7e4,roughness:1}),j*.06,0,Math.sin(j)*.022,.075,.035,.045);
@@ -53,8 +54,8 @@ export function createForest(parent) {
   }
   const birdMat=new THREE.MeshBasicMaterial({color:0x486c64,side:THREE.DoubleSide});
   for(let i=0;i<6;i++){
-    const group=new THREE.Group();environment.add(group);
-    const wings=[-1,1].map(side=>{const pivot=new THREE.Group();group.add(pivot);const wing=mesh(pivot,new THREE.PlaneGeometry(.075,.024),birdMat,side*.036,0,0);wing.rotation.z=side*.25;return {pivot,side};});
+    const group=new THREE.Group();environment.add(group);mesh(group,sphere,new THREE.MeshStandardMaterial({color:0xfff1d8}),0,0,0,.035,.013,.016);mesh(group,sphere,new THREE.MeshStandardMaterial({color:0xffd27c}),.035,0,.005,.012,.009,.009);
+    const wings=[-1,1].map(side=>{const pivot=new THREE.Group();group.add(pivot);const wing=mesh(pivot,new THREE.SphereGeometry(1,8,5),birdMat,side*.036,0,0);wing.scale.set(.066,.024,.007);wing.rotation.z=side*.25;return {pivot,side};});
     birds.push({group,wings,i});
   }
   const wingMats=[mat(0xff9c43),mat(0xff72be),mat(0xffe95c)];
@@ -63,6 +64,21 @@ export function createForest(parent) {
     const wings=[-1,1].map(side=>{const pivot=new THREE.Group();group.add(pivot);mesh(pivot,sphere,wingMats[i%3],side*.018,0,0,.022,.014,.003);return {pivot,side};});
     butterflies.push({group,wings,i});
   }
+  // Flowering branches frame the town without covering the real background.
+  for(const side of [-1,1]){
+    const branch=new THREE.Group();branch.position.set(side*.7,.85,.02);environment.add(branch);
+    const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(),new THREE.Vector3(side*.10,0,.3),new THREE.Vector3(side*.02,0,.65),new THREE.Vector3(-side*.15,0,.9)]);
+    mesh(branch,new THREE.TubeGeometry(curve,18,.012,5,false),bark,0,0,0);
+    for(let i=0;i<19;i++){
+      const p=curve.getPoint(.14+i*.044),dx=Math.sin(i*2.4)*.09;
+      mesh(branch,sphere,cream,p.x+dx,p.y,p.z,.012,.012,.012);
+      for(let j=0;j<5;j++){const a=j*Math.PI*2/5;mesh(branch,sphere,flowerColors[i%3],p.x+dx+Math.cos(a)*.026,p.y-.006,p.z+Math.sin(a)*.026,.025,.012,.021);}
+    }
+    batchStatic(branch);actors.push({group:branch,start:1.1});
+  }
+  actors.forEach(({group})=>batchStatic(group));clouds.forEach(({group})=>batchStatic(group));
+  [...actors,...clouds,...birds,...butterflies].forEach(({group})=>group.userData.animated=true);
+  batchStatic(environment);
   return t=>{
     meadow.scale.setScalar(Math.max(.001,1-Math.pow(1-Math.min(1,t/1.3),3)));
     sky.scale.y=Math.max(.001,Math.min(1,t/2));

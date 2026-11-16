@@ -1,3 +1,4 @@
+import { createStorybook, batchStatic } from './storybook.js';
 import { createForest } from './forest.js';
 import { createSoundscape } from './soundscape.js';
 import { installCameraAdapter, openPreferredRear } from './camera-adapter.js';
@@ -15,22 +16,15 @@ const stage = document.getElementById('stage');
 const preview = new URLSearchParams(location.search).has('preview');
 const layout = preview ? [0, 1, 2] : [null, null, null];
 function universe(parent) {
-  const village=new THREE.Group();
-  // Card coordinates are XY; buildings rise along +Z, away from the paper.
-  village.position.set(0,.25,.008);
-  village.scale.setScalar(.21);
-  parent.add(village);
-  buildTown(village,{layoutMap:true});
-  const colored=new Map();const vivid=original=>{if(!original?.color)return original;if(!colored.has(original)){const m=original.clone(),hsl={};m.color.getHSL(hsl);m.color.setHSL(hsl.h,Math.min(1,hsl.s*1.35+.06),Math.min(.78,hsl.l*1.07));colored.set(original,m);}return colored.get(original);};village.traverse(object=>{if(object.material)object.material=Array.isArray(object.material)?object.material.map(vivid):vivid(object.material);});
+  const villageUpdate=createStorybook(parent);
   const natureUpdate=createForest(parent);
-  const actors=slots.flatMap((slot,i)=>{
-    if(layout[i]===null)return [];
-    const actor=createMarket(stickers[layout[i]]);
-    actor.group.position.set((slot.x-card.width/2)/card.width,(card.height/2-slot.y)/card.width,.016);
-    actor.group.scale.setScalar(.21);
-    parent.add(actor.group);
-    return [actor];
-  });
+  const actors=slots.map((slot,i)=>stickers.map((definition,type)=>{
+    const actor=createMarket(definition);
+    actor.group.position.set((slot.x-card.width/2)/card.width,(card.height/2-slot.y)/card.width,.012);
+    actor.group.scale.setScalar(.265);
+    actor.group.visible=false;parent.add(actor.group);
+    return {...actor,type,started:null};
+  }));
   lightMarket(parent);
   let elapsed=0,lastTick=null;
   sound.begin();
@@ -42,26 +36,33 @@ function universe(parent) {
       material.transparent=true;material.opacity=0;material.depthWrite=false;
     }
   });
-  parent.scale.setScalar(.001);
+  parent.scale.setScalar(1);
   let revealed=false;
   return now=>{
+    if(!parent.parent.visible){lastTick=null;sound.update(0,false,false);return;}
     if(lastTick!==null)elapsed+=Math.min(66,Math.max(0,now-lastTick));lastTick=now;
     const t=elapsed/1000,p=Math.min(1,t/1.1),ease=1-Math.pow(1-p,3);
-    parent.scale.setScalar(Math.max(.001,ease));
+    parent.scale.setScalar(1);
     if(!revealed){
       fades.forEach((original,material)=>{material.opacity=original.opacity*ease;if(p===1){material.transparent=original.transparent;material.depthWrite=original.depthWrite;material.needsUpdate=true;}});
       revealed=p===1;
     }
-    const villageProgress=Math.max(0,Math.min(1,(t-.15)/1.25)),v=1-Math.pow(1-villageProgress,3);
-    village.scale.setScalar(Math.max(.001,.21*v));village.rotation.x=-(1-v)*.65;village.position.z=.008-(1-v)*.06;
-    actors.forEach(actor=>actor.update(Math.max(0,t-.35)));
+    villageUpdate(t);
+    actors.forEach((choices,i)=>choices.forEach(actor=>{
+      actor.group.visible=layout[i]===actor.type;
+      if(!actor.group.visible)return;
+      actor.started??=t;
+      const age=Math.max(0,t-actor.started),p=Math.min(1,age/1.3);
+      actor.group.scale.setScalar(.265*(.82+.18*(1-(1-p)**3)));
+      actor.update(age);
+    }));
     natureUpdate(t);
     sound.update(t,parent.parent.visible,layout.includes(1));
   };
 }
 async function run() {
   let renderer,scene,camera,anchor,mindar,base,reader,filter;
-  let selfie=false,switching=false,content=null,readSince=0,update=()=>{},currentCamera=()=>camera;
+  let selfie=false,switching=false,content=null,readSince=0,layoutResolved=false,update=()=>{},currentCamera=()=>camera;
   const samples=slots.map(()=>({type:null,count:0}));
   const status=document.getElementById('status');
   const replay=document.getElementById('replay');
@@ -71,14 +72,14 @@ async function run() {
     replay.hidden=false;replay.textContent='重新识别';
     replay.onclick=()=>{
       anchor.remove(content);content.traverse(o=>{o.geometry?.dispose();for(const m of (Array.isArray(o.material)?o.material:[o.material])){m?.map?.dispose();m?.dispose();}});
-      content=null;readSince=0;samples.forEach(s=>s.count=0);layout.fill(null);replay.hidden=true;
+      content=null;layoutResolved=false;readSince=0;samples.forEach(s=>s.count=0);layout.fill(null);replay.hidden=true;
       status.textContent='对准卡片，正在读取贴纸';
     };
   }
   if(preview){
     renderer=new THREE.WebGLRenderer({antialias:true,stencil:true});
     scene=new THREE.Scene();scene.background=new THREE.Color(0x142b2a);
-    camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.01,20);camera.position.set(0,-2.1,3.1);camera.lookAt(0,.3,0);
+    camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.01,20);camera.position.set(0,-1.45,1.5);camera.lookAt(0,.25,.06);
     anchor=new THREE.Group();scene.add(anchor);stage.append(renderer.domElement);showWorld();let drag=null;renderer.domElement.style.touchAction='none';renderer.domElement.onpointerdown=e=>{drag=[e.clientX,e.clientY];renderer.domElement.setPointerCapture(e.pointerId);};renderer.domElement.onpointermove=e=>{if(!drag)return;camera.position.x=THREE.MathUtils.clamp(camera.position.x-(e.clientX-drag[0])*.008,-3,3);camera.position.y=THREE.MathUtils.clamp(camera.position.y+(e.clientY-drag[1])*.008,-4,1);camera.lookAt(0,.3,0);drag=[e.clientX,e.clientY];};renderer.domElement.onlostpointercapture=()=>drag=null;
     replay.textContent='重演开场';replay.onclick=()=>{anchor.remove(content);content=null;showWorld();};
     replay.hidden=true;
@@ -93,7 +94,8 @@ async function run() {
     mindar.renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,stencil:true});
     old.domElement.replaceWith(mindar.renderer.domElement);old.dispose();
     ({renderer,scene,camera}=mindar);base=mindar.addAnchor(0);
-    anchor=new THREE.Group();scene.add(anchor);anchor.visible=false;filter=createPoseFilter(anchor,{positionRestMs:135,rotationRestMs:165,movingMs:32});
+    anchor=new THREE.Group();scene.add(anchor);anchor.visible=false;filter=createPoseFilter(anchor,{positionRestMs:110,rotationRestMs:130,movingMs:25});
+    showWorld();anchor.visible=true;await renderer.compileAsync(scene,camera);anchor.visible=false;
     await mindar.start();reader=await createStickerReader(mindar.video,base,mindar.controller.projectionTransform);
 
     const lensPanel=document.createElement('details');const lensSummary=document.createElement('summary');lensSummary.textContent='镜头设置';lensPanel.append(lensSummary);
@@ -118,7 +120,7 @@ async function run() {
         lensInfo.textContent='所选镜头启动失败：'+error.message;
         mindar.video?.srcObject?.getTracks().forEach(t=>t.stop());mindar.video?.remove();
         try{mindar.environmentDeviceId=previous;mindar.shouldFaceUser=false;selfie=false;await mindar.start();reader=await createStickerReader(mindar.video,base,mindar.controller.projectionTransform);describeLens();}catch{lensInfo.textContent='相机恢复失败，请重新打开页面';}
-      }finally{filter=createPoseFilter(anchor,{positionRestMs:135,rotationRestMs:165,movingMs:32});readSince=0;samples.forEach(s=>s.count=0);switching=false;select.disabled=false;}
+      }finally{filter=createPoseFilter(anchor,{positionRestMs:110,rotationRestMs:130,movingMs:25});readSince=0;samples.forEach(s=>s.count=0);switching=false;select.disabled=false;}
     };
 
     setupPhoto({renderer,audioStream:()=>sound.stream,render:()=>renderer.render(scene,camera),video:()=>mindar.video,ready:()=>!switching,switchCamera:async()=>{
@@ -128,7 +130,7 @@ async function run() {
       mindar.controller.onUpdate=()=>{};
       mindar.stop();
       base.visible=false;base.group.visible=false;
-      anchor.visible=false;filter=createPoseFilter(anchor,{positionRestMs:135,rotationRestMs:165,movingMs:32});
+      anchor.visible=false;filter=createPoseFilter(anchor,{positionRestMs:110,rotationRestMs:130,movingMs:25});
       renderer.clear();
       async function startFacing(front){
         mindar.shouldFaceUser=front;await mindar.start();
@@ -143,24 +145,25 @@ async function run() {
         mindar.video?.srcObject?.getTracks().forEach(t=>t.stop());mindar.video?.remove();
         try{await startFacing(selfie);}catch{status.textContent='相机暂不可用，请重新打开页面并允许相机权限';}
         throw new Error('无法切换镜头，请检查设备和相机权限。');
-      }finally{anchor.visible=false;filter=createPoseFilter(anchor,{positionRestMs:135,rotationRestMs:165,movingMs:32});switching=false;readSince=0;samples.forEach(s=>s.count=0);}
-      anchor.matrixAutoUpdate=false;anchor.visible=false;filter=createPoseFilter(anchor,{positionRestMs:135,rotationRestMs:165,movingMs:32});
+      }finally{anchor.visible=false;filter=createPoseFilter(anchor,{positionRestMs:110,rotationRestMs:130,movingMs:25});switching=false;readSince=0;samples.forEach(s=>s.count=0);}
+      anchor.matrixAutoUpdate=false;anchor.visible=false;filter=createPoseFilter(anchor,{positionRestMs:110,rotationRestMs:130,movingMs:25});
       status.textContent=(selfie?'前置':'后置')+'相机 · 对准卡片，识别后自动显示';
       return selfie;
     }});
     currentCamera=()=>camera;
   }
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));
-  function resize(){if(preview){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.position.z=Math.max(3.1,4.0/camera.aspect);camera.lookAt(0,.2,0);camera.updateProjectionMatrix();}}
+  function resize(){if(preview){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.position.z=Math.max(1.5,1.12/camera.aspect);camera.lookAt(0,.25,.06);camera.updateProjectionMatrix();}}
   addEventListener('resize',resize);resize();
   document.getElementById('welcome').hidden=true;document.getElementById('controls').hidden=false;
   replay.hidden=true;status.textContent=preview?'拖动画面，环顾小镇':'对准整张卡片，识别后自动打开';
   let lastRender=-Infinity;
   renderer.setAnimationLoop(()=>{
-    const now=performance.now();if(now-lastRender<1000/30)return;lastRender=now;
+    const now=performance.now();lastRender=now;
     if(!preview&&!switching){
-      filter(base.group,now);
-      if(!content){
+      filter({matrix:base.group.matrix,visible:base.group.visible&&mindar.controller.trackingStates?.[0]?.isTracking!==false},now);
+      if(!layoutResolved){
+        if(base.visible){if(!content)showWorld();replay.hidden=false;}
         if(!base.visible){readSince=0;samples.forEach(s=>s.count=0);}
         const values=base.visible?reader(now):null;
         if(values){
@@ -168,7 +171,7 @@ async function run() {
           values.forEach((type,i)=>{const s=samples[i];if(type===undefined){s.count=0;return;}s.count=s.type===type?s.count+1:1;s.type=type;s.required=values.confidence?.[i]==='high'?2:3;if(s.count>=s.required)layout[i]=type;});
           status.textContent='已找到卡片，正在辨认建筑…';
           if(now-readSince>=110&&samples.every(s=>s.count>=(s.required||3))){
-            showWorld();status.textContent=layout.map((t,i)=>`${i+1}号 ${t===null?'空':stickers[t].label}`).join(' · ');
+            layoutResolved=true;showWorld();replay.hidden=false;status.textContent=layout.map((t,i)=>`${i+1}号 ${t===null?'空':stickers[t].label}`).join(' · ');
           }
         }
       }
