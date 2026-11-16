@@ -1,11 +1,9 @@
-import { createStorybook, batchStatic } from './storybook.js';
+import { createStorybook, dressMarket } from './storybook.js';
 import { createForest } from './forest.js';
 import { createSoundscape } from './soundscape.js';
 import { installCameraAdapter, openPreferredRear } from './camera-adapter.js';
 import * as THREE from 'three';
-import { buildTown } from './town.js';
 import { createMarket, lightMarket, stickers } from './market.js';
-import { openCardCamera } from '../camera.js';
 import { card, slots } from './card-layout.js';
 import { createStickerReader } from './read-stickers.js';
 import { setupPhoto } from './photo.js';
@@ -20,6 +18,7 @@ function universe(parent) {
   const natureUpdate=createForest(parent);
   const actors=slots.map((slot,i)=>stickers.map((definition,type)=>{
     const actor=createMarket(definition);
+    dressMarket(actor,definition.id);
     actor.group.position.set((slot.x-card.width/2)/card.width,(card.height/2-slot.y)/card.width,.012);
     actor.group.scale.setScalar(.265);
     actor.group.visible=false;parent.add(actor.group);
@@ -79,7 +78,7 @@ async function run() {
   if(preview){
     renderer=new THREE.WebGLRenderer({antialias:true,stencil:true});
     scene=new THREE.Scene();scene.background=new THREE.Color(0x142b2a);
-    camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.01,20);camera.position.set(0,-1.45,1.5);camera.lookAt(0,.25,.06);
+    camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.01,20);camera.position.set(0,-2.4,2.7);camera.lookAt(0,.25,.06);
     anchor=new THREE.Group();scene.add(anchor);stage.append(renderer.domElement);showWorld();let drag=null;renderer.domElement.style.touchAction='none';renderer.domElement.onpointerdown=e=>{drag=[e.clientX,e.clientY];renderer.domElement.setPointerCapture(e.pointerId);};renderer.domElement.onpointermove=e=>{if(!drag)return;camera.position.x=THREE.MathUtils.clamp(camera.position.x-(e.clientX-drag[0])*.008,-3,3);camera.position.y=THREE.MathUtils.clamp(camera.position.y+(e.clientY-drag[1])*.008,-4,1);camera.lookAt(0,.3,0);drag=[e.clientX,e.clientY];};renderer.domElement.onlostpointercapture=()=>drag=null;
     replay.textContent='重演开场';replay.onclick=()=>{anchor.remove(content);content=null;showWorld();};
     replay.hidden=true;
@@ -153,7 +152,7 @@ async function run() {
     currentCamera=()=>camera;
   }
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));
-  function resize(){if(preview){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.position.z=Math.max(1.5,1.12/camera.aspect);camera.lookAt(0,.25,.06);camera.updateProjectionMatrix();}}
+  function resize(){if(preview){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.position.z=Math.max(2.7,1.9/camera.aspect);camera.lookAt(0,.25,.06);camera.updateProjectionMatrix();}}
   addEventListener('resize',resize);resize();
   document.getElementById('welcome').hidden=true;document.getElementById('controls').hidden=false;
   replay.hidden=true;status.textContent=preview?'拖动画面，环顾小镇':'对准整张卡片，识别后自动打开';

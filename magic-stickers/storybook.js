@@ -23,6 +23,43 @@ export function batchStatic(root) {
   batches.forEach((b,mat)=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(b.p,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(b.n,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(b.uv,2));g.computeBoundingSphere();root.add(new THREE.Mesh(g,mat));});
 }
 
+export function dressMarket(actor,id){
+  const props=actor.group.children[0],moving=props.children[0];
+  const parent=id==='flower'?moving.children[0]:moving;
+  const details=new THREE.Group();parent.add(details);
+  const brass=material(0xe9b455),cream=material(0xffe5b0),leaf=material(0x368a61);
+  if(id==='flower'){
+    const pink=material(0xf079ac),purple=material(0xb18bdf);
+    for(const side of [-1,1]){
+      const vine=new THREE.CatmullRomCurve3([new THREE.Vector3(side*.33,-.25,.13),new THREE.Vector3(side*.35,-.24,.39),new THREE.Vector3(side*.26,-.12,.62),new THREE.Vector3(side*.15,.02,.72)]);
+      mesh(details,new THREE.TubeGeometry(vine,18,.009,5,false),leaf);
+      for(let i=0;i<8;i++){
+        const p=vine.getPoint((i+.3)/8);oval(details,leaf,p.x+side*.02,p.y,p.z,.029,.013,.014);
+        for(let j=0;j<5;j++){const a=j*Math.PI*2/5;oval(details,i%2?pink:purple,p.x+Math.cos(a)*.022,p.y-.012,p.z+Math.sin(a)*.022,.018,.010,.018);}
+        oval(details,brass,p.x,p.y-.025,p.z,.010,.009,.01);
+      }
+    }
+    for(const x of [-.40,.40]){tube(details,brass,.016,.02,.21,x,-.24,.16,8);oval(details,cream,x,-.24,.29,.034,.034,.046);}
+  }else if(id==='book'){
+    const covers=[material(0xcc6e68),material(0x5aa49e),material(0x9971b5)];
+    for(const side of [-1,1])for(let i=0;i<4;i++){
+      const g=new THREE.Group();g.position.set(side*.30,-.38,.20+i*.035);g.rotation.z=side*(i%2?.13:-.08);details.add(g);
+      box(g,covers[i%3],.14,.10,.027,0,0,0);box(g,cream,.12,.097,.014,0,-.003,.002);
+    }
+    for(const side of [-1,1]){
+      for(let i=0;i<4;i++)tube(details,brass,.006,.006,.15,side*.37,-.24+i*.14,.27,6);
+      box(details,brass,.014,.46,.015,side*.37,-.03,.35);
+    }
+  }else{
+    const turquoise=material(0x2b999d),navy=material(0x416a99);
+    for(let i=0;i<28;i++){
+      const a=i*Math.PI*2/28,p=box(details,i%2?turquoise:navy,.037,.018,.035,Math.cos(a)*.414,Math.sin(a)*.414,.112);p.rotation.z=a+Math.PI/2;
+    }
+    for(const [r,z]of [[.40,.15],[.10,.435]])mesh(details,new THREE.TorusGeometry(r,.009,6,48),brass,0,0,z);
+  }
+  batchStatic(details);
+}
+
 export function createStorybook(parent){
   const root=new THREE.Group();root.name='storybook-town';parent.add(root);
   const cream=material(0xffefc7),gold=material(0xdba34a),wood=material(0x704531),green=material(0x398565);
