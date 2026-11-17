@@ -3,9 +3,11 @@ import { createStorybook, dressMarket } from './storybook.js';
 import { createForest } from './forest.js';
 import { createMarket, lightMarket, stickers } from './market.js';
 import { card, slots } from './card-layout.js';
+import {createCardLandmarks} from './card-landmarks.js';
 export function createComparisonWorld(parent,layout,sound) {
   const villageUpdate=createStorybook(parent);
   const natureUpdate=createForest(parent);
+  const landmarkUpdate=createCardLandmarks(parent);
   const actors=slots.map((slot,i)=>stickers.map((definition,type)=>{
     const actor=createMarket(definition);
     dressMarket(actor,definition.id);
@@ -46,6 +48,7 @@ export function createComparisonWorld(parent,layout,sound) {
       actor.update(age);
     }));
     natureUpdate(t);
+    landmarkUpdate(t);
     sound.update(t,parent.parent.visible,layout.includes(1));
   };
 }

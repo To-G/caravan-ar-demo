@@ -22,11 +22,12 @@ const root=path.resolve(__dirname,'..'),out=path.resolve(root,'../output/魔法�
  const base='new URL("./",wB.src).toString()';if(!engine.includes(base))throw Error('Unrecognized engine base URL');
  engine=engine.replace(base,'new URL("./",location.href).toString()');
  const tracking=fs.readFileSync(path.join(vendor,'dist/xr-tracking.js'),'utf8');
- const names=['comparison-world','storybook','forest','market','card-layout','camera-adapter','read-stickers','photo','soundscape','tracking-visibility','eighthwall'];
+ const names=['comparison-world','storybook','forest','market','card-layout','card-landmarks','camera-adapter','read-stickers','photo','soundscape','tracking-visibility','eighthwall'];
  const modules={'ar/lib/three.module.js':fs.readFileSync(path.join(root,'lib/three.module.js'),'utf8')};
  for(const n of names){let s=fs.readFileSync(path.join(root,'magic-stickers',n+'.js'),'utf8');
   s=s.replace(/(\bfrom\s*|\bimport\s*\(\s*)(['"])(\.{1,2}\/[^'"]+)\2/g,(_,prefix,q,spec)=>prefix+q+'ar/'+path.posix.normalize(path.posix.join('magic-stickers',spec))+q);
   if(n==='eighthwall')s=s.replace('__TARGET_DATA__',JSON.stringify(target));
+  if(n==='card-landmarks')s=s.replace("'./assets/card-qr.png'",JSON.stringify(asset('card-qr.png','image/png')));
   if(n==='read-stickers'){
    s=s.replace("'./assets/' + id + '.svg'",'('+JSON.stringify(Object.fromEntries(['flower','fountain','book'].map(id=>[id,asset(id+'.svg','image/svg+xml')])) )+')[id]');
    s=s.replace("'./assets/student-card.svg'",JSON.stringify(asset('student-card.svg','image/svg+xml')));

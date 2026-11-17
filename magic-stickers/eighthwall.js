@@ -14,7 +14,7 @@ document.getElementById('loss-buffer').onchange=e=>{visibility.setEnabled(e.curr
 let renderer,scene,camera,anchor,content,update,reader,video,raw,readResolved=false,readSince=0,firstSeen=null,lastSeen=0,frames=0,poses=0,switching=false,front=false,choice=null,initialStream=null;
 let generation=0,resolveStarted,rejectStarted,photoReady=false,originalGetUserMedia,brokerInstalled=false;
 let mediaPreviewOpen=false,recordingStart=null;
-const journal={engine:'@8thwall/engine 0.1.0 MIT',build:'capture-touch-20261117',nativeTracking:true,events:[]};
+const journal={engine:'@8thwall/engine 0.1.0 MIT',build:'card-landmarks-20261117',nativeTracking:true,events:[]};
 window.__AR_COMPARISON__=journal;
 const log=(event,detail={})=>{journal.events.push({ms:Math.round(performance.now()),event,...detail});if(journal.events.length>600)journal.events.shift();};
 const media=navigator.mediaDevices,originalMedia=media?{getUserMedia:media.getUserMedia.bind(media),enumerateDevices:media.enumerateDevices.bind(media)}:null;
@@ -68,6 +68,7 @@ function projectToVideo(x,y,z){
 const cameraSpace=new THREE.Group(),worldPosition=new THREE.Vector3(),worldRotation=new THREE.Quaternion(),worldScale=new THREE.Vector3();
 cameraSpace.matrixAutoUpdate=false;
 const targetMatrix=new THREE.Matrix4();
+const cardNormal=new THREE.Vector3(),viewDirection=new THREE.Vector3();
 function imagePose({detail}){
  if(switching||detail.name!==target.name||!anchor)return;
  const now=performance.now();poses++;lastSeen=now;
@@ -76,12 +77,14 @@ function imagePose({detail}){
  // The trained target has white side padding: 600px card inside 675px target.
  worldPosition.set(detail.position.x,detail.position.y,detail.position.z);worldRotation.set(detail.rotation.x,detail.rotation.y,detail.rotation.z,detail.rotation.w);
  worldScale.setScalar(detail.scale*detail.scaledWidth*600/675);targetMatrix.compose(worldPosition,worldRotation,worldScale);
+ cardNormal.set(0,0,1).applyQuaternion(worldRotation);camera.getWorldPosition(viewDirection);viewDirection.sub(worldPosition).normalize();
+ journal.viewAngleDeg=Math.round(THREE.MathUtils.radToDeg(Math.asin(Math.min(1,Math.abs(cardNormal.dot(viewDirection))))));
  anchor.matrix.copy(targetMatrix);anchor.visible=true;
  const message=readResolved?'集市已展开 · 短按拍照，长按录像':'已找到卡片，正在辨认建筑…';if(status.textContent!==message)status.textContent=message;
 }
-function imageLost({detail}){if(detail.name===target.name&&anchor&&!switching){visibility.lost(performance.now());log('target-lost');}}
+function imageLost({detail}){if(detail.name===target.name&&anchor&&!switching){visibility.lost(performance.now());log('target-lost',{reason:'sdk-image-lost',viewAngleDeg:journal.viewAngleDeg});}}
 async function restart({calibrateRear=false}={}){
- switching=true;generation++;visibility.reset();if(anchor)anchor.visible=false;lastSeen=0;reader=null;
+ switching=true;generation++;visibility.reset();if(anchor)anchor.visible=false;lastSeen=0;reader=null;delete journal.viewAngleDeg;
  window.XR8.stop();await new Promise(r=>setTimeout(r,250));
  if(calibrateRear){const capture=await openPreferredRear(originalMedia);initialStream=capture.stream;choice=(await originalMedia.enumerateDevices()).find(d=>d.deviceId===capture.current)||{deviceId:capture.current,label:capture.stream.getVideoTracks()[0].label};}
  switching=false;await runEngine();await fillLenses();
@@ -106,8 +109,9 @@ function pipeline(){return {
   if(!journal.pipelineKeys)journal.pipelineKeys=Object.keys(args.processCpuResult||{});
   journal.frameTiming={repeat:args.frameStartResult?.repeatFrame,videoTime:args.frameStartResult?.videoTime};
   const reality=args.processCpuResult?.reality;if(reality)journal.trackingState={status:reality.trackingStatus,reason:reality.trackingReason,detected:reality.detectedImages?.length,intrinsics:reality.intrinsics};
-  anchor.visible=visibility.visible(now);
-  if(!anchor.visible&&firstSeen!==null)status.textContent='请放慢移动，保持整张卡片清晰入镜';
+  const wasVisible=anchor.visible;anchor.visible=visibility.visible(now);
+  if(wasVisible&&!anchor.visible)log('scene-hidden',{reason:now-lastSeen>=250?'pose-stale':'loss-buffer-expired',poseAgeMs:Math.round(now-lastSeen),viewAngleDeg:journal.viewAngleDeg});
+  if(!anchor.visible&&firstSeen!==null)status.textContent=journal.viewAngleDeg<15?'视角过低，请稍微抬高手机，让卡面保持清晰':'请放慢移动，保持整张卡片清晰入镜';
   if(visibility.tracked(now)&&!readResolved&&reader){
    camera.updateMatrixWorld(true);cameraSpace.matrix.multiplyMatrices(camera.matrixWorldInverse,targetMatrix);raw.visible=true;
    const values=reader(now);
@@ -141,5 +145,5 @@ async function begin(){
 }
 document.getElementById('start').onclick=async e=>{const b=e.currentTarget;b.disabled=true;document.getElementById('start-message').textContent='正在准备开源引擎并打开主摄…';try{await begin();}catch(error){window.XR8?.stop();initialStream?.getTracks().forEach(t=>t.stop());initialStream=null;log('start-error',{message:error.message});document.getElementById('start-message').textContent=error.message;b.disabled=false;b.textContent='重试';}};
 let lastMetrics=performance.now(),lastFrames=0,lastPoses=0;
-setInterval(()=>{const now=performance.now(),seconds=(now-lastMetrics)/1000;const fps=Math.round((frames-lastFrames)/seconds),hz=Math.round((poses-lastPoses)/seconds);journal.latest={fps,trackingHz:hz,drawCalls:renderer?.info.render.calls};document.getElementById('diagnostics').textContent=`实际镜头：${journal.camera?.label||'未启动'}\n视频：${video?.videoWidth||0}×${video?.videoHeight||0}\n画面 ${fps} 帧/秒 · 跟踪 ${hz} 次/秒\n${simple.checked?'定位框模式':'完整小镇模式'} · 8th Wall原生姿态`;lastMetrics=now;lastFrames=frames;lastPoses=poses;},1000);
+setInterval(()=>{const now=performance.now(),seconds=(now-lastMetrics)/1000;const fps=Math.round((frames-lastFrames)/seconds),hz=Math.round((poses-lastPoses)/seconds);journal.latest={fps,trackingHz:hz,drawCalls:renderer?.info.render.calls};document.getElementById('diagnostics').textContent=`实际镜头：${journal.camera?.label||'未启动'}\n视频：${video?.videoWidth||0}×${video?.videoHeight||0}\n视角 ${journal.viewAngleDeg??'—'}°（贴近卡面为0°）\n画面 ${fps} 帧/秒 · 跟踪 ${hz} 次/秒\n${simple.checked?'定位框模式':'完整小镇模式'} · 8th Wall原生姿态`;lastMetrics=now;lastFrames=frames;lastPoses=poses;},1000);
 if(preview){layout.splice(0,3,0,1,2);renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));stage.append(renderer.domElement);scene=new THREE.Scene();scene.background=new THREE.Color(0x142b2a);camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.01,20);camera.position.set(0,-2.4,Math.max(2.7,1.9/camera.aspect));camera.lookAt(0,.25,.06);anchor=new THREE.Group();scene.add(anchor);makeWorld();addOutline();welcome.hidden=true;document.getElementById('controls').hidden=false;status.textContent='8th Wall对照版 · 场景预览（非识别测试）';renderer.setAnimationLoop(()=>{frames++;updateDisplay(performance.now());renderer.render(scene,camera);});}
