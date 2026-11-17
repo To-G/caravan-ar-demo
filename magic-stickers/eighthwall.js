@@ -14,7 +14,7 @@ document.getElementById('loss-buffer').onchange=e=>{visibility.setEnabled(e.curr
 let renderer,scene,camera,anchor,content,update,reader,video,raw,readResolved=false,readSince=0,firstSeen=null,lastSeen=0,frames=0,poses=0,switching=false,front=false,choice=null,initialStream=null;
 let generation=0,resolveStarted,rejectStarted,photoReady=false,originalGetUserMedia,brokerInstalled=false;
 let mediaPreviewOpen=false,recordingStart=null;
-const journal={engine:'@8thwall/engine 0.1.0 MIT',build:'capture-performance-20261117',nativeTracking:true,events:[]};
+const journal={engine:'@8thwall/engine 0.1.0 MIT',build:'capture-touch-20261117',nativeTracking:true,events:[]};
 window.__AR_COMPARISON__=journal;
 const log=(event,detail={})=>{journal.events.push({ms:Math.round(performance.now()),event,...detail});if(journal.events.length>600)journal.events.shift();};
 const media=navigator.mediaDevices,originalMedia=media?{getUserMedia:media.getUserMedia.bind(media),enumerateDevices:media.enumerateDevices.bind(media)}:null;

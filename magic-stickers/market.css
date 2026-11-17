@@ -12,6 +12,10 @@ h1{margin-top:4px;font-size:clamp(19px,4vw,34px);line-height:1.25}
 .eyebrow{font-size:10px;font-weight:bold;color:#ffd589;letter-spacing:2px}
 nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;pointer-events:auto}
 button,a{font:inherit}
+/* Suppress mobile tap rectangles while keeping keyboard focus visible. */
+:where(button,a,input,select,summary,label,[role="button"]){-webkit-tap-highlight-color:transparent}
+:where(button,a,input,select,summary,[role="button"]):focus:not(:focus-visible){outline:none}
+:where(button,a,input,select,summary,[role="button"]):focus-visible{outline:2px solid #ffd589;outline-offset:3px}
 nav a,footer button{color:#fff4de;text-decoration:none;border:1px solid #6a5c7d;background:#211a30ea;border-radius:12px;padding:9px 12px;white-space:nowrap;font-size:13px}
 button{cursor:pointer}
 .panel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:3;width:min(90vw,410px);padding:26px;display:grid;gap:15px;border:1px solid #8e7298;border-radius:24px;background:#211a30;box-shadow:0 24px 70px #0c0a16;line-height:1.6}
