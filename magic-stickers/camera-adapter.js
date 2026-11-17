@@ -1,15 +1,44 @@
-export async function openPreferredRear(media) {
+const cameraPreferenceKey='magic-market-rear-camera-v2';
+const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const rearLabel=label=>!/front|facetime|selfie|前置|前摄|自拍/i.test(label||'');
+const cameraNumber=label=>/camera2\s+(\d+)(?:\s*,|\s*$)/i.exec(label||'')?.[1];
+export function rememberRearCamera(track){
+  if(!track||!rearLabel(track.label))return;
+  try{localStorage.setItem(cameraPreferenceKey,JSON.stringify({id:track.getSettings().deviceId,label:track.label}));}catch{}
+}
+export async function openCameraDevice(media,device,{wait=pause}={}){
+  let failure;
+  for(let attempt=0;attempt<3;attempt++){
+    if(attempt)await wait(attempt===1?250:600);
+    let stream;
+    try{
+      stream=await media.getUserMedia({audio:false,video:{deviceId:{exact:device.deviceId},resizeMode:{ideal:'none'}}});
+      const track=stream.getVideoTracks()[0],actual=track.getSettings().deviceId;
+      const wantedNumber=cameraNumber(device.label),actualNumber=cameraNumber(track.label);
+      if((actual&&actual!==device.deviceId)||(wantedNumber!==undefined&&actualNumber!==undefined&&wantedNumber!==actualNumber))throw new Error('浏览器返回了其他镜头');
+      if(!actual&&!track.label)throw new Error('浏览器未提供实际镜头信息');
+      return stream;
+    }catch(error){stream?.getTracks().forEach(t=>t.stop());failure=error;if(error.name==='NotAllowedError'||error.name==='SecurityError')break;}
+  }
+  throw new Error(`未能打开所选镜头${device.label?'（'+device.label+'）':''}，请重试。${failure?.message||''}`);
+}
+export async function openPreferredRear(media,{wait=pause}={}) {
   let stream=await media.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},resizeMode:{ideal:'none'}}});
   const active=()=>stream.getVideoTracks()[0].getSettings().deviceId||'';
-  const devices=(await media.enumerateDevices()).filter(d=>d.kind==='videoinput');
+  let devices;
+  try{devices=(await media.enumerateDevices()).filter(d=>d.kind==='videoinput');
+    if(devices.length&&!devices.some(d=>d.label)){await wait(250);devices=(await media.enumerateDevices()).filter(d=>d.kind==='videoinput');}
+  }
+  catch(error){stream.getTracks().forEach(t=>t.stop());throw error;}
   // Camera 0 was calibrated as the main camera on Find X9 and Xiaomi 15 Pro.
   // Other devices keep the browser default unless an explicit main lens exists.
-  const rear=devices.filter(d=>!/front|facetime|selfie|前置|前摄|自拍/i.test(d.label));
-  const main=rear.find(d=>/^camera2\s+0(?:\s*,|\s*$)/i.test(d.label))||rear.find(d=>/main|primary|主摄/i.test(d.label)&&!/tele|ultra|macro|长焦|超广角|微距/i.test(d.label));
+  const rear=devices.filter(d=>rearLabel(d.label));
+  let saved;try{saved=JSON.parse(localStorage.getItem(cameraPreferenceKey));}catch{}
+  const remembered=saved&&(rear.find(d=>d.deviceId===saved.id&&(!saved.label||d.label===saved.label))||rear.find(d=>saved.label&&d.label===saved.label));
+  const main=remembered||rear.find(d=>/^camera2\s+0(?:\s*,|\s*$)/i.test(d.label))||rear.find(d=>/main|primary|主摄/i.test(d.label)&&!/tele|ultra|macro|长焦|超广角|微距/i.test(d.label));
   if(main&&main.deviceId!==active()){
-    const original=active();stream.getTracks().forEach(t=>t.stop());
-    try{stream=await media.getUserMedia({audio:false,video:{deviceId:{exact:main.deviceId},resizeMode:{ideal:'none'}}});}
-    catch{stream=await media.getUserMedia({audio:false,video:original?{deviceId:{exact:original}}:{facingMode:{ideal:'environment'}}});}
+    stream.getTracks().forEach(t=>t.stop());
+    stream=await openCameraDevice(media,main,{wait});
   }
   return {stream,current:active()};
 }
@@ -42,7 +71,11 @@ export function installCameraAdapter(mindar, initialStream) {
     if(!stream){
       const id=mindar.shouldFaceUser?mindar.userDeviceId:mindar.environmentDeviceId;
       const videoConstraints=id?{deviceId:{exact:id}}:{facingMode:{ideal:mindar.shouldFaceUser?'user':'environment'}};
-      stream=await navigator.mediaDevices.getUserMedia({audio:false,video:videoConstraints});
+      if(id){
+        const devices=await navigator.mediaDevices.enumerateDevices();
+        const device=devices.find(d=>d.kind==='videoinput'&&d.deviceId===id)||{deviceId:id,label:''};
+        stream=await openCameraDevice(navigator.mediaDevices,device);
+      }else stream=await navigator.mediaDevices.getUserMedia({audio:false,video:videoConstraints});
     }
     try{
       const loaded=new Promise((resolve,reject)=>{video.onloadedmetadata=resolve;video.onerror=reject;});

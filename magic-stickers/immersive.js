@@ -1,7 +1,7 @@
 import { createStorybook, dressMarket } from './storybook.js';
 import { createForest } from './forest.js';
 import { createSoundscape } from './soundscape.js';
-import { installCameraAdapter, openPreferredRear } from './camera-adapter.js';
+import { installCameraAdapter, openPreferredRear, rememberRearCamera } from './camera-adapter.js';
 import * as THREE from 'three';
 import { createMarket, lightMarket, stickers } from './market.js';
 import { card, slots } from './card-layout.js';
@@ -114,7 +114,7 @@ async function run() {
         await mindar.start();reader=await createStickerReader(mindar.video,base,mindar.controller.projectionTransform);
         mindar.video.dataset.mirrored=String(selfie);mindar.video.style.transform=selfie?'scaleX(-1)':'';
         renderer.domElement.dataset.mirrored=String(selfie);renderer.domElement.style.transform=selfie?'scaleX(-1)':'';
-        document.getElementById('switch-camera').setAttribute('aria-label',selfie?'切换到后置摄像头':'切换到前置摄像头');describeLens();if(mindar.video.srcObject.getVideoTracks()[0].getSettings().deviceId!==selected)alert('浏览器没有打开所选镜头，请查看实际镜头信息');
+        document.getElementById('switch-camera').setAttribute('aria-label',selfie?'切换到后置摄像头':'切换到前置摄像头');describeLens();if(!selfie)rememberRearCamera(mindar.video.srcObject.getVideoTracks()[0]);
       }catch(error){
         lensInfo.textContent='所选镜头启动失败：'+error.message;
         mindar.video?.srcObject?.getTracks().forEach(t=>t.stop());mindar.video?.remove();
@@ -187,8 +187,8 @@ else{
   document.getElementById('welcome').hidden=false;
   
   document.getElementById('start').onclick=async e=>{
-    e.currentTarget.disabled=true;
-    try{await sound.unlock();document.getElementById('sound-toggle').textContent='声音：开';await run();}catch{document.querySelector('#welcome p').textContent='相机启动失败，请检查相机权限后重新打开页面。';}
+    const button=e.currentTarget;button.disabled=true;
+    try{await sound.unlock();document.getElementById('sound-toggle').textContent='声音：开';await run();}catch(error){document.getElementById('welcome').hidden=false;document.querySelector('#welcome p').textContent=error.message||'相机启动失败，请检查相机权限后重试。';button.disabled=false;button.textContent='重试打开主摄';}
   };
 }
 
