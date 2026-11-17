@@ -1,4 +1,4 @@
-export function setupPhoto({ renderer, render, video, ready, switchCamera, audioStream=()=>null }) {
+export function setupPhoto({ renderer, render, video, ready, switchCamera, audioStream=()=>null, canvasIncludesCamera=false }) {
   const tools = document.createElement('div');
   tools.className = 'photo-tools';
   tools.innerHTML = '<button id="take-photo" type="button" aria-label="拍照"><span></span></button><button id="switch-camera" type="button" aria-label="切换到前置摄像头"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M26 12A11 11 0 0 0 6 8L3 12m0-7v7h7M6 20a11 11 0 0 0 20 4l3-4m0 7v-7h-7"/></svg></button>';
@@ -25,6 +25,7 @@ export function setupPhoto({ renderer, render, video, ready, switchCamera, audio
       if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
       const ctx = canvas.getContext('2d');
       ctx.setTransform(scale,0,0,scale,0,0);ctx.clearRect(0,0,innerWidth,innerHeight);
+      if(canvasIncludesCamera){render();const rect=renderer.domElement.getBoundingClientRect();ctx.drawImage(renderer.domElement,rect.left,rect.top,rect.width,rect.height);return;}
       const rect = source.getBoundingClientRect();
       if (source.dataset.mirrored === 'true') { ctx.save(); ctx.translate(innerWidth, 0); ctx.scale(-1, 1); }
       if (getComputedStyle(source).objectFit === 'cover') {

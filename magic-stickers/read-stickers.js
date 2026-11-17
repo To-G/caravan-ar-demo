@@ -55,8 +55,9 @@ export async function createStickerReader(video,base,projection){
       for(let k=0;k<xy.length;k+=2){
         const x=xy[k],y=xy[k+1],px=m[0]*x+m[4]*y+m[12],py=m[1]*x+m[5]*y+m[13],pz=m[2]*x+m[6]*y+m[14];
         if(pz>=-.001)return undefined;
-        const u=(projection[0][0]*px/-pz+projection[0][2])*width/video.videoWidth;
-        const v=(projection[1][1]*-py/-pz+projection[1][2])*height/video.videoHeight;
+        const projected=typeof projection==='function'?projection(px,py,pz):null;
+        const u=(projected?projected[0]:projection[0][0]*px/-pz+projection[0][2])*width/video.videoWidth;
+        const v=(projected?projected[1]:projection[1][1]*-py/-pz+projection[1][2])*height/video.videoHeight;
         const ux=Math.floor(u),vy=Math.floor(v);
         if(ux<0||vy<0||ux+1>=width||vy+1>=height)return undefined;
         const fx=u-ux,fy=v-vy,src=(vy*width+ux)*4,dest=k*2;

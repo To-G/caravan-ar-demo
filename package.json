@@ -2,5 +2,5 @@
   "name": "magic-market-window",
   "version": "1.0.0",
   "private": true,
-  "scripts": { "build": "node scripts/build-window.cjs" }
+  "scripts": { "build": "node scripts/build-window.cjs", "build:8thwall": "node scripts/build-eighthwall.cjs", "test:8thwall": "node tests/check-eighthwall.cjs" }
 }
