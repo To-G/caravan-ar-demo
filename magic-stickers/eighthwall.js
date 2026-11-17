@@ -13,7 +13,8 @@ const visibility=createTrackingVisibility();
 document.getElementById('loss-buffer').onchange=e=>{visibility.setEnabled(e.currentTarget.checked);};
 let renderer,scene,camera,anchor,content,update,reader,video,raw,readResolved=false,readSince=0,firstSeen=null,lastSeen=0,frames=0,poses=0,switching=false,front=false,choice=null,initialStream=null;
 let generation=0,resolveStarted,rejectStarted,photoReady=false,originalGetUserMedia,brokerInstalled=false;
-const journal={engine:'@8thwall/engine 0.1.0 MIT',build:'20261117',nativeTracking:true,events:[]};
+let mediaPreviewOpen=false,recordingStart=null;
+const journal={engine:'@8thwall/engine 0.1.0 MIT',build:'capture-performance-20261117',nativeTracking:true,events:[]};
 window.__AR_COMPARISON__=journal;
 const log=(event,detail={})=>{journal.events.push({ms:Math.round(performance.now()),event,...detail});if(journal.events.length>600)journal.events.shift();};
 const media=navigator.mediaDevices,originalMedia=media?{getUserMedia:media.getUserMedia.bind(media),enumerateDevices:media.enumerateDevices.bind(media)}:null;
@@ -30,7 +31,7 @@ document.getElementById('export-log').onclick=()=>{const a=document.createElemen
 const outlineMaterial=new THREE.LineBasicMaterial({color:0xffdf80});
 let outline;
 function addOutline(){outline=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-.5,-.75,.002),new THREE.Vector3(.5,-.75,.002),new THREE.Vector3(.5,.75,.002),new THREE.Vector3(-.5,.75,.002)]),outlineMaterial);anchor.add(outline);}
-function updateDisplay(now){content.visible=!simple.checked;outline.visible=simple.checked;if(!simple.checked)update(now);else sound.update(0,false,false);}
+function updateDisplay(now){if(mediaPreviewOpen){content.visible=false;outline.visible=false;sound.update(0,false,false);return;}content.visible=!simple.checked;outline.visible=simple.checked;if(!simple.checked)update(now);else sound.update(0,false,false);}
 simple.onchange=()=>log('display-mode',{simple:simple.checked});
 
 // Only camera acquisition is adapted. Pose estimation, projection and SDK filtering stay native.
@@ -132,7 +133,8 @@ async function begin(){
  const capture=await openPreferredRear(originalMedia);initialStream=capture.stream;const devices=await originalMedia.enumerateDevices();choice=devices.find(d=>d.deviceId===capture.current)||{deviceId:capture.current,label:capture.stream.getVideoTracks()[0].label};
  installCameraBroker();await runEngine();await fillLenses();
  welcome.hidden=true;document.getElementById('controls').hidden=false;
- if(!photoReady){photoReady=true;setupPhoto({renderer:{get domElement(){return renderer.domElement;}},render:()=>{},video:()=>video,canvasIncludesCamera:true,audioStream:()=>sound.stream,ready:()=>!switching&&!!video,switchCamera:async()=>{
+ if(!photoReady){photoReady=true;setupPhoto({renderer:{get domElement(){return renderer.domElement;}},render:()=>{},video:()=>video,canvasIncludesCamera:true,audioStream:()=>sound.stream,ready:()=>!switching&&!!video,
+ onPreviewChange:open=>{mediaPreviewOpen=open;},onCaptureMetrics:metrics=>{log('capture',metrics);},onRecordingChange:(active,info)=>{if(active){recordingStart={ms:performance.now(),frames};log('recording-start',info);}else if(recordingStart){const seconds=(performance.now()-recordingStart.ms)/1000;log('recording-end',{seconds,renderFps:(frames-recordingStart.frames)/seconds});recordingStart=null;}},switchCamera:async()=>{
    front=!front;choice=null;
    await restart({calibrateRear:!front});document.getElementById('switch-camera').setAttribute('aria-label',front?'切换到后置摄像头':'切换到前置摄像头');return front;
  }});}
