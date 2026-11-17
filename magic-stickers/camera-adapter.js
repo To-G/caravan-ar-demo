@@ -35,12 +35,17 @@ export async function openPreferredRear(media,{wait=pause}={}) {
   const rear=devices.filter(d=>rearLabel(d.label));
   let saved;try{saved=JSON.parse(localStorage.getItem(cameraPreferenceKey));}catch{}
   const remembered=saved&&(rear.find(d=>d.deviceId===saved.id&&(!saved.label||d.label===saved.label))||rear.find(d=>saved.label&&d.label===saved.label));
-  const main=remembered||rear.find(d=>/^camera2\s+0(?:\s*,|\s*$)/i.test(d.label))||rear.find(d=>/main|primary|主摄/i.test(d.label)&&!/tele|ultra|macro|长焦|超广角|微距/i.test(d.label));
+  // A hosted origin may retain an old telephoto choice even when a local file
+  // opens the main camera correctly. A known main lens takes startup priority.
+  const calibrated=rear.find(d=>/^camera2\s+0(?:\s*,|\s*$)/i.test(d.label));
+  const namedMain=rear.find(d=>/main|primary|主摄/i.test(d.label)&&!/tele|ultra|macro|长焦|超广角|微距/i.test(d.label));
+  const main=calibrated||namedMain||remembered;
   if(main&&main.deviceId!==active()){
     stream.getTracks().forEach(t=>t.stop());
     stream=await openCameraDevice(media,main,{wait});
   }
-  return {stream,current:active()};
+  if(main)rememberRearCamera(stream.getVideoTracks()[0]);
+  return {stream,current:active(),selection:{reason:calibrated?'calibrated-main':namedMain?'named-main':remembered?'remembered':'browser-default',preferredLabel:main?.label||null,previousLabel:saved?.label||null,availableLabels:devices.map(d=>d.label)}};
 }
 
 export function installCameraAdapter(mindar, initialStream) {

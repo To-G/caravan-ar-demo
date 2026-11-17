@@ -14,7 +14,7 @@ document.getElementById('loss-buffer').onchange=e=>{visibility.setEnabled(e.curr
 let renderer,scene,camera,anchor,content,update,reader,video,raw,readResolved=false,readSince=0,firstSeen=null,lastSeen=0,frames=0,poses=0,switching=false,front=false,choice=null,initialStream=null;
 let generation=0,resolveStarted,rejectStarted,photoReady=false,originalGetUserMedia,brokerInstalled=false;
 let mediaPreviewOpen=false,recordingStart=null;
-const journal={engine:'@8thwall/engine 0.1.0 MIT',build:'card-landmarks-20261117',nativeTracking:true,events:[]};
+const journal={engine:'@8thwall/engine 0.1.0 MIT',build:'main-camera-priority-20261117',nativeTracking:true,events:[]};
 window.__AR_COMPARISON__=journal;
 const log=(event,detail={})=>{journal.events.push({ms:Math.round(performance.now()),event,...detail});if(journal.events.length>600)journal.events.shift();};
 const media=navigator.mediaDevices,originalMedia=media?{getUserMedia:media.getUserMedia.bind(media),enumerateDevices:media.enumerateDevices.bind(media)}:null;
@@ -59,6 +59,13 @@ async function fillLenses(){
  updateLens();
  select.onchange=async()=>{select.disabled=true;try{const label=select.selectedOptions[0].textContent;choice={deviceId:select.value,label};front=/front|selfie|前置|自拍/i.test(label);await restart();if(!front)rememberRearCamera(video.srcObject.getVideoTracks()[0]);}catch(e){status.textContent=e.message;}finally{select.disabled=false;}};
 }
+document.getElementById('main-camera').onclick=async event=>{
+ const controls=[event.currentTarget,document.getElementById('lens'),document.getElementById('take-photo'),document.getElementById('switch-camera')].filter(Boolean);
+ controls.forEach(b=>b.disabled=true);
+ try{front=false;choice=null;await restart({calibrateRear:true});document.getElementById('switch-camera')?.setAttribute('aria-label','切换到前置摄像头');status.textContent='后置镜头已恢复，请对准卡片';log('main-camera-restored',{selection:journal.cameraSelection});}
+ catch(error){status.textContent=error.message;}
+ finally{controls.forEach(b=>b.disabled=false);}
+};
 function projectToVideo(x,y,z){
  const p=camera.projectionMatrix.elements,cw=renderer.domElement.clientWidth,ch=renderer.domElement.clientHeight;
  const nx=(p[0]*x+p[4]*y+p[8]*z+p[12])/(-z),ny=(p[1]*x+p[5]*y+p[9]*z+p[13])/(-z);
@@ -86,7 +93,7 @@ function imageLost({detail}){if(detail.name===target.name&&anchor&&!switching){v
 async function restart({calibrateRear=false}={}){
  switching=true;generation++;visibility.reset();if(anchor)anchor.visible=false;lastSeen=0;reader=null;delete journal.viewAngleDeg;
  window.XR8.stop();await new Promise(r=>setTimeout(r,250));
- if(calibrateRear){const capture=await openPreferredRear(originalMedia);initialStream=capture.stream;choice=(await originalMedia.enumerateDevices()).find(d=>d.deviceId===capture.current)||{deviceId:capture.current,label:capture.stream.getVideoTracks()[0].label};}
+ if(calibrateRear){const capture=await openPreferredRear(originalMedia);journal.cameraSelection=capture.selection;log('camera-selection',capture.selection);initialStream=capture.stream;choice=(await originalMedia.enumerateDevices()).find(d=>d.deviceId===capture.current)||{deviceId:capture.current,label:capture.stream.getVideoTracks()[0].label};}
  switching=false;await runEngine();await fillLenses();
 }
 function pipeline(){return {
@@ -134,9 +141,9 @@ async function runEngine(){
 }
 async function begin(){
  await sound.unlock();window.THREE=THREE;await window.__loadEight();
- const capture=await openPreferredRear(originalMedia);initialStream=capture.stream;const devices=await originalMedia.enumerateDevices();choice=devices.find(d=>d.deviceId===capture.current)||{deviceId:capture.current,label:capture.stream.getVideoTracks()[0].label};
+ const capture=await openPreferredRear(originalMedia);journal.cameraSelection=capture.selection;log('camera-selection',capture.selection);initialStream=capture.stream;const devices=await originalMedia.enumerateDevices();choice=devices.find(d=>d.deviceId===capture.current)||{deviceId:capture.current,label:capture.stream.getVideoTracks()[0].label};
  installCameraBroker();await runEngine();await fillLenses();
- welcome.hidden=true;document.getElementById('controls').hidden=false;
+ welcome.hidden=true;document.getElementById('controls').hidden=false;document.getElementById('main-camera').disabled=false;
  if(!photoReady){photoReady=true;setupPhoto({renderer:{get domElement(){return renderer.domElement;}},render:()=>{},video:()=>video,canvasIncludesCamera:true,audioStream:()=>sound.stream,ready:()=>!switching&&!!video,
  onPreviewChange:open=>{mediaPreviewOpen=open;},onCaptureMetrics:metrics=>{log('capture',metrics);},onRecordingChange:(active,info)=>{if(active){recordingStart={ms:performance.now(),frames};log('recording-start',info);}else if(recordingStart){const seconds=(performance.now()-recordingStart.ms)/1000;log('recording-end',{seconds,renderFps:(frames-recordingStart.frames)/seconds});recordingStart=null;}},switchCamera:async()=>{
    front=!front;choice=null;
