@@ -4,10 +4,13 @@ import {createSoundscape} from './soundscape.js';
 import {openPreferredRear,openCameraDevice,rememberRearCamera} from './camera-adapter.js';
 import {createStickerReader} from './read-stickers.js';
 import {setupPhoto} from './photo.js';
+import {createTrackingVisibility} from './tracking-visibility.js';
 
 const target=__TARGET_DATA__,preview=new URLSearchParams(location.search).has('preview');
 const stage=document.getElementById('stage'),status=document.getElementById('status'),welcome=document.getElementById('welcome');
 const sound=createSoundscape(),layout=[null,null,null],samples=layout.map(()=>({type:null,count:0}));
+const visibility=createTrackingVisibility();
+document.getElementById('loss-buffer').onchange=e=>{visibility.setEnabled(e.currentTarget.checked);};
 let renderer,scene,camera,anchor,content,update,reader,video,raw,readResolved=false,readSince=0,firstSeen=null,lastSeen=0,frames=0,poses=0,switching=false,front=false,choice=null,initialStream=null;
 let generation=0,resolveStarted,rejectStarted,photoReady=false,originalGetUserMedia,brokerInstalled=false;
 const journal={engine:'@8thwall/engine 0.1.0 MIT',build:'20261117',nativeTracking:true,events:[]};
@@ -67,16 +70,17 @@ const targetMatrix=new THREE.Matrix4();
 function imagePose({detail}){
  if(switching||detail.name!==target.name||!anchor)return;
  const now=performance.now();poses++;lastSeen=now;
+ visibility.found(now);
  if(firstSeen===null){firstSeen=now;log('first-detection',{afterStartMs:Math.round(now-(journal.cameraStarted||now))});}
  // The trained target has white side padding: 600px card inside 675px target.
  worldPosition.set(detail.position.x,detail.position.y,detail.position.z);worldRotation.set(detail.rotation.x,detail.rotation.y,detail.rotation.z,detail.rotation.w);
  worldScale.setScalar(detail.scale*detail.scaledWidth*600/675);targetMatrix.compose(worldPosition,worldRotation,worldScale);
  anchor.matrix.copy(targetMatrix);anchor.visible=true;
- if(!readResolved)status.textContent='已找到卡片，正在辨认建筑…';
+ const message=readResolved?'集市已展开 · 短按拍照，长按录像':'已找到卡片，正在辨认建筑…';if(status.textContent!==message)status.textContent=message;
 }
-function imageLost({detail}){if(detail.name===target.name&&anchor){anchor.visible=false;log('target-lost');}}
+function imageLost({detail}){if(detail.name===target.name&&anchor&&!switching){visibility.lost(performance.now());log('target-lost');}}
 async function restart({calibrateRear=false}={}){
- switching=true;generation++;if(anchor)anchor.visible=false;lastSeen=0;reader=null;
+ switching=true;generation++;visibility.reset();if(anchor)anchor.visible=false;lastSeen=0;reader=null;
  window.XR8.stop();await new Promise(r=>setTimeout(r,250));
  if(calibrateRear){const capture=await openPreferredRear(originalMedia);initialStream=capture.stream;choice=(await originalMedia.enumerateDevices()).find(d=>d.deviceId===capture.current)||{deviceId:capture.current,label:capture.stream.getVideoTracks()[0].label};}
  switching=false;await runEngine();await fillLenses();
@@ -89,6 +93,7 @@ function pipeline(){return {
   ({renderer,scene,camera}=window.XR8.Threejs.xrScene());renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));
   camera.position.set(0,2,0);window.XR8.XrController.updateCameraProjectionMatrix({origin:camera.position,facing:camera.quaternion});
   anchor=new THREE.Group();anchor.matrixAutoUpdate=false;anchor.visible=false;scene.add(anchor);makeWorld();addOutline();
+  visibility.reset();
   raw={visible:false,group:cameraSpace};
   const current=generation;
   createStickerReader(video,raw,projectToVideo).then(r=>{if(current===generation)reader=r;}).catch(e=>status.textContent=e.message);
@@ -100,14 +105,15 @@ function pipeline(){return {
   if(!journal.pipelineKeys)journal.pipelineKeys=Object.keys(args.processCpuResult||{});
   journal.frameTiming={repeat:args.frameStartResult?.repeatFrame,videoTime:args.frameStartResult?.videoTime};
   const reality=args.processCpuResult?.reality;if(reality)journal.trackingState={status:reality.trackingStatus,reason:reality.trackingReason,detected:reality.detectedImages?.length,intrinsics:reality.intrinsics};
-  if(now-lastSeen>250)anchor.visible=false;
-  if(anchor.visible&&!readResolved&&reader){
+  anchor.visible=visibility.visible(now);
+  if(!anchor.visible&&firstSeen!==null)status.textContent='请放慢移动，保持整张卡片清晰入镜';
+  if(visibility.tracked(now)&&!readResolved&&reader){
    camera.updateMatrixWorld(true);cameraSpace.matrix.multiplyMatrices(camera.matrixWorldInverse,targetMatrix);raw.visible=true;
    const values=reader(now);
    if(values){if(!readSince)readSince=now;values.forEach((type,i)=>{const s=samples[i];if(type===undefined){s.count=0;return;}s.count=s.type===type?s.count+1:1;s.type=type;s.required=values.confidence?.[i]==='high'?2:3;if(s.count>=s.required)layout[i]=type;});
     if(now-readSince>=110&&samples.every(s=>s.count>=(s.required||3))){readResolved=true;status.textContent='集市已展开 · 短按拍照，长按录像';log('stickers-confirmed',{layout:[...layout]});}
    }
-  }else if(!anchor.visible&&!readResolved){readSince=0;samples.forEach(s=>s.count=0);}
+  }else if(!visibility.tracked(now)&&!readResolved){readSince=0;samples.forEach(s=>s.count=0);}
   updateDisplay(now);
  },
  onException:(e)=>{log('engine-error',{message:String(e)});rejectStarted?.(new Error(String(e)));status.textContent='引擎运行异常，请重新打开页面';},
