@@ -46,4 +46,5 @@ body:has(.photo-tools) footer p{max-width:75%;font-size:12px}
 .record-clock{position:absolute;left:50%;bottom:88px;transform:translateX(-50%);background:#211a30dd;color:#fff;padding:8px 14px;border-radius:20px;white-space:nowrap}
 #take-photo.recording span{border-radius:10px;background:#ff5353;width:34px;height:34px}
 .photo-dialog video{display:block;max-width:100%;max-height:65dvh;margin:12px auto}
-#take-photo{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#take-photo,#take-photo *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none;-webkit-user-drag:none}
+#take-photo *{pointer-events:none}

@@ -80,17 +80,38 @@ export function setupPhoto({ renderer, render, video, ready, switchCamera, audio
     }catch(error){cleanRecording();suppressClickUntil=Date.now()+700;alert('无法开始录制：'+error.message);}
   }
   shot.style.touchAction='none';shot.setAttribute('aria-label','短按拍照，长按录视频');
-  shot.oncontextmenu=e=>e.preventDefault();
-  shot.onpointerdown=e=>{if(e.button!==0||shot.disabled)return;shot.setPointerCapture(e.pointerId);holdTimer=setTimeout(startRecording,400);};
-  shot.onpointerup=()=>{clearTimeout(holdTimer);stopRecording();};
-  shot.onpointercancel=()=>{clearTimeout(holdTimer);stopRecording();};
-  shot.onlostpointercapture=()=>{clearTimeout(holdTimer);stopRecording();};
-  document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(holdTimer);stopRecording();}});
+  const blockNativeGesture=e=>{if(e.cancelable)e.preventDefault();e.stopPropagation();};
+  // Some Android browsers start their own long-press gesture unless touchstart
+  // is canceled too; contextmenu and CSS alone are insufficient.
+  for(const type of ['touchstart','touchmove'])shot.addEventListener(type,blockNativeGesture,{passive:false});
+  for(const type of ['contextmenu','selectstart','dragstart'])shot.addEventListener(type,blockNativeGesture);
+  let activePointer=null,holdFired=false;
+  shot.onpointerdown=e=>{
+    blockNativeGesture(e);
+    if(e.button!==0||e.isPrimary===false||shot.disabled||activePointer!==null)return;
+    activePointer=e.pointerId;holdFired=false;
+    try{shot.setPointerCapture(e.pointerId);}catch{}
+    holdTimer=setTimeout(()=>{holdFired=true;startRecording();},400);
+  };
+  function finishPress(e,canceled=false){
+    if(activePointer===null||(e.pointerId!==undefined&&e.pointerId!==activePointer))return;
+    blockNativeGesture(e);activePointer=null;clearTimeout(holdTimer);
+    const wasRecording=!!recorder;
+    stopRecording();
+    // Dispatch short taps ourselves, since canceling native touch gestures also
+    // suppresses click on several mobile browsers. Ignore compatibility clicks.
+    if(!wasRecording&&!holdFired&&!canceled){suppressClickUntil=Date.now()+700;takePhoto();}
+  }
+  shot.onpointerup=e=>finishPress(e);
+  shot.onpointercancel=e=>finishPress(e,true);
+  shot.onlostpointercapture=e=>finishPress(e,true);
+  window.addEventListener('pointerup',e=>finishPress(e));
+  window.addEventListener('pointercancel',e=>finishPress(e,true));
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){activePointer=null;clearTimeout(holdTimer);stopRecording();}});
   dialog.addEventListener('close',()=>preview.pause());
-  document.getElementById('take-photo').onclick = async event => {
-    if(Date.now()<suppressClickUntil)return;
+  async function takePhoto(){
     if (!ready()) return;
-    const button = event.currentTarget;
+    const button = shot;
     button.disabled = true;
     try {
       const canvas=document.createElement('canvas');compose(canvas,false);
@@ -101,7 +122,8 @@ export function setupPhoto({ renderer, render, video, ready, switchCamera, audio
       url = URL.createObjectURL(blob);preview.hidden=true;preview.removeAttribute('src');dialog.querySelector('img').hidden=false;dialog.querySelector('h2').textContent='我的魔法集市合照';dialog.querySelector('p').textContent='可长按图片保存，也可以点击下方按钮。';dialog.querySelector('img').src = url; dialog.showModal();
     } catch (error) { alert(error.message); }
     finally { button.disabled = false; }
-  };
+  }
+  shot.onclick=event=>{blockNativeGesture(event);if(Date.now()>=suppressClickUntil)takePhoto();};
   document.getElementById('save-photo').onclick = async () => {
     if (navigator.canShare?.({ files: [file] })) {
       try { await navigator.share({ files: [file], title: '我的魔法集市合照' }); return; }
